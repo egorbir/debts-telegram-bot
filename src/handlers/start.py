@@ -30,10 +30,6 @@ db_balances = {
 }
 
 db_payments = list()  # TODO: replace with REDIS (?)
-db_selected_debtors = list()
-
-db_payer = []
-db_sum = []
 
 payer_cb = CallbackData('payer', 'msg_id', 'payer')
 debtor_cb = CallbackData('debtor', 'msg_id', 'debtor')
@@ -103,10 +99,8 @@ async def back_payer_callback(call: types.CallbackQuery, state: FSMContext):
 async def get_payer_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     # ----------------------------------------------------- TODO replace redis read
     balances = copy.deepcopy(db_balances)
-    if db_payer:
-        db_payer[0] = callback_data['payer']
-    else:
-        db_payer.append(callback_data['payer'])
+    await state.update_data(payer=callback_data['payer'])
+    await state.update_data(debtors=list())
     # ----------------------------------------------------
     user_buttons = list()
     for user in balances:
@@ -129,18 +123,16 @@ async def get_payer_callback(call: types.CallbackQuery, callback_data: dict, sta
 
 async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     # ----------------------------------------------- TODO: redis READ
-    payer = db_payer[0]
-    payments = copy.deepcopy(db_payments)
     balances = copy.deepcopy(db_balances)
-    debtors = copy.deepcopy(db_selected_debtors)
+    user_state_data = await state.get_data()
     # -----------------------------------------------
     user_buttons = list()
-    if callback_data['debtor'] not in db_selected_debtors:
-        db_selected_debtors.append(callback_data['debtor'])
+    if callback_data['debtor'] not in user_state_data['debtors']:
+        user_state_data['debtors'].append(callback_data['debtor'])
     else:
-        db_selected_debtors.remove(callback_data['debtor'])
+        user_state_data['debtors'].remove(callback_data['debtor'])
     for user in balances:
-        if user in db_selected_debtors:
+        if user in user_state_data['debtors']:
             btn_txt = f'\u2611 {user}'
         else:
             btn_txt = user
@@ -157,13 +149,15 @@ async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, s
     keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
     keyboard.row(*tech_buttons)
     message = 'Выбери, за кого платил'
+    await state.update_data(debtors=user_state_data['debtors'])
     await call.message.edit_text(text=message, reply_markup=keyboard)
 
 
-async def select_all_debtors(call: types.CallbackQuery):
+async def select_all_debtors(call: types.CallbackQuery, state: FSMContext):
+    user_state_data = await state.get_data()
     for user in db_balances:
-        if user not in db_selected_debtors:
-            db_selected_debtors.append(user)
+        if user not in user_state_data['debtors']:
+            user_state_data['debtors'].append(user)
     user_buttons = list()
     for user in db_balances:
         user_buttons.append(
@@ -178,6 +172,7 @@ async def select_all_debtors(call: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
     keyboard.row(*tech_buttons)
     message = 'Выбери, за кого платил'
+    await state.update_data(debtors=user_state_data['debtors'])
     await call.message.edit_text(text=message, reply_markup=keyboard)
 
 
@@ -186,14 +181,12 @@ async def selection_done_callback(call: types.CallbackQuery):
     await AddPayment.waiting_for_sum.set()
 
 
-async def get_payment_sum(msg: types.Message):
+async def get_payment_sum(msg: types.Message, state: FSMContext):
     pattern = r'\d+(\.\,\d*)?$'
+
     if re.match(pattern, str(msg.text)):
         payment_sum = round(float(msg.text.replace(',', '.')), ndigits=2)
-        if len(db_sum) == 0:
-            db_sum.append(payment_sum)
-        else:
-            db_sum[0] = payment_sum
+        await state.update_data(payment_sum=payment_sum)
         await AddPayment.waiting_for_comment.set()
         buttons = [
             InlineKeyboardButton('Yes', callback_data='comment'),
@@ -211,35 +204,29 @@ async def need_payment_comment_callback(call: types.CallbackQuery, state: FSMCon
 
 
 async def get_payment_comment(msg: types.Message, state: FSMContext):
+    user_state_data = await state.get_data()
     payment_comment = msg.text
     add_payment(payment={
-        'payer': db_payer[0],
-        'sum': db_sum[0],
-        'debtors': db_selected_debtors,
+        'payer': user_state_data['payer'],
+        'sum': user_state_data['payment_sum'],
+        'debtors': user_state_data['debtors'],
         'comment': payment_comment
     }, payments_to_add=db_payments, balances_to_add=db_balances)
-    db_payer.clear()
-    db_selected_debtors.clear()
     await msg.answer('Payment added')
     await state.finish()
 
 
 async def finish_payment_add_callback(call: types.CallbackQuery, state: FSMContext):
     # ----------------------------------------------- TODO: redis READ
-    payer = db_payer[0]
-    payments = copy.deepcopy(db_payments)
-    balances = copy.deepcopy(db_balances)
-    debtors = copy.deepcopy(db_selected_debtors)
+    user_state_data = await state.get_data()
     # -----------------------------------------------
 
     add_payment(payment={
-        'payer': db_payer[0],
-        'sum': db_sum[0],
-        'debtors': db_selected_debtors,
+        'payer': user_state_data['payer'],
+        'sum': user_state_data['payment_sum'],
+        'debtors': user_state_data['debtors'],
         'comment': ''
     }, payments_to_add=db_payments, balances_to_add=db_balances)
-    db_payer.clear()
-    db_selected_debtors.clear()
     await call.message.answer('Payment added')
     await state.finish()
 
