@@ -1,10 +1,8 @@
 import copy
-import random
 import re
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import CommandStart
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
@@ -21,7 +19,7 @@ from ..data.db_interface import DBInterface, Core
 # )
 #
 # CORE = Core(db=DB)
-from ..utils.transfering_depts import add_payment, balances_to_payments
+from ..utils.transferring_debts import add_payment, balances_to_payments
 
 db_balances = {
     '@EgorBir': 0,
@@ -40,11 +38,6 @@ class AddPayment(StatesGroup):
     waiting_for_debtors = State()
     waiting_for_sum = State()
     waiting_for_comment = State()
-
-
-async def send_wellcome(msg: types.Message):
-    hello_message = 'This is bot for counting group debts\nTo enter the group use the /reg command'
-    await msg.answer(text=hello_message)
 
 
 async def register_person(msg: types.Message):
@@ -229,6 +222,7 @@ async def finish_payment_add_callback(call: types.CallbackQuery, state: FSMConte
     }, payments_to_add=db_payments, balances_to_add=db_balances)
     await call.message.answer('Payment added')
     await state.finish()
+    await call.bot.answer_callback_query(call.id)
 
 
 async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
@@ -242,17 +236,10 @@ async def end_counting(msg: types.Message):
     await msg.answer(text=payments.__str__())
 
 
-async def get_help(msg: types.Message):
-    help_message = 'This later will be a long help message about this bot'
-    await msg.answer(text=help_message)
-
-
 def register_start_handlers(dp: Dispatcher):
-    dp.register_message_handler(send_wellcome, commands='start', state='*')
     dp.register_message_handler(register_person, commands='reg', state='*')
     dp.register_message_handler(register_payment, commands='pay', state='*')
     dp.register_message_handler(end_counting, commands='end', state='*')
-    dp.register_message_handler(get_help, commands='help', state='*')
 
     dp.register_message_handler(get_payment_sum, state=AddPayment.waiting_for_sum)
     dp.register_message_handler(get_payment_comment, state=AddPayment.waiting_for_comment)
