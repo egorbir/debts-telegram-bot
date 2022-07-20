@@ -134,9 +134,9 @@ async def done_select_callback(call: types.CallbackQuery):
 
 
 async def get_payment_sum(msg: types.Message, state: FSMContext):
-    pattern = r'\d+(\.\,\d*)?$'
+    pattern = r'\d+(\,\d*)?$'
 
-    if re.match(pattern, str(msg.text)):
+    if re.match(pattern, msg.text.replace('.', ',')):
         payment_sum = round(float(msg.text.replace(',', '.')), ndigits=2)
         await state.update_data(payment_sum=payment_sum)
         await AddPayment.waiting_for_comment.set()
