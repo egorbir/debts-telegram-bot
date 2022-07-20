@@ -5,7 +5,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 
 from src.data.config import BOT_TOKEN
-from src.handlers import register_start_handlers
+from src.handlers import register_start_handlers, register_common_handlers
 from src.utils.set_bot_commands import set_bot_commands
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ async def startup(dispatcher: Dispatcher):
     await set_bot_commands(dispatcher)
 
     register_start_handlers(dp=dispatcher)
+    register_common_handlers(dp=dispatcher)
 
 
 async def shutdown(dispatcher: Dispatcher):

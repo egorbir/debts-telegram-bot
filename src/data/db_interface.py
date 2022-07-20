@@ -5,6 +5,10 @@ from sqlalchemy.orm import sessionmaker
 
 
 class DBInterface:
+    """
+    Interface to implement database connection logic
+    """
+
     def __init__(self, host, port, user, password, database):
         self.engine = create_engine(
             f'postgresql://{user}:{password}@{host}:{port}/{database}',

@@ -1,4 +1,5 @@
 import copy
+import datetime
 import re
 
 from aiogram import Dispatcher, types
@@ -7,8 +8,8 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
-from ..data.config import *
-from ..data.db_interface import DBInterface, Core
+from ..data.redis_interface import RedisInterface
+from ..utils.transferring_debts import add_payment, balances_to_payments
 
 # DB = DBInterface(
 #     user=DB_USER,
@@ -19,15 +20,14 @@ from ..data.db_interface import DBInterface, Core
 # )
 #
 # CORE = Core(db=DB)
-from ..utils.transferring_debts import add_payment, balances_to_payments
 
-db_balances = {
-    '@EgorBir': 0,
-    '@BirYo': 0,
-    '@egorbir_bg': 0
-}
+RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
 
-db_payments = list()  # TODO: replace with REDIS (?)
+# db_balances = {
+#     '@EgorBir': 0,
+#     '@BirYo': 0,
+#     '@egorbir_bg': 0
+# }
 
 payer_cb = CallbackData('payer', 'msg_id', 'payer')
 debtor_cb = CallbackData('debtor', 'msg_id', 'debtor')
@@ -40,28 +40,9 @@ class AddPayment(StatesGroup):
     waiting_for_comment = State()
 
 
-async def register_person(msg: types.Message):
-    # ----------------------------------------------------- TODO replace redis read
-    balances = copy.deepcopy(db_balances)
-    # -----------------------------------------------------
-    username = f'@{msg.from_user.username}'
-    name = f'{msg.from_user.first_name} {msg.from_user.last_name}'
-
-    if username in db_balances:
-        message = 'Already in group'
-    else:
-        db_balances[username] = 0
-        message = f'Good, now you are in group - {username}'
-    # ----------------------------------------------------- TODO replace redis write
-    # -----------------------------------------------------
-    await msg.answer(text=message)
-
-
 async def register_payment(msg: types.Message, state: FSMContext):
+    balances = RDS.read_chat_balances(chat_id=msg.chat.id)
     buttons = list()
-    # ----------------------------------------------------- TODO replace redis read
-    balances = copy.deepcopy(db_balances)
-    # -----------------------------------------------------
     for user in balances:
         buttons.append(InlineKeyboardButton(
             user,
@@ -74,10 +55,8 @@ async def register_payment(msg: types.Message, state: FSMContext):
 
 
 async def back_payer_callback(call: types.CallbackQuery, state: FSMContext):
+    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     buttons = list()
-    # ----------------------------------------------------- TODO replace redis read
-    balances = copy.deepcopy(db_balances)
-    # -----------------------------------------------------
     for user in balances:
         buttons.append(InlineKeyboardButton(
             user,
@@ -90,11 +69,9 @@ async def back_payer_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 async def get_payer_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
-    # ----------------------------------------------------- TODO replace redis read
-    balances = copy.deepcopy(db_balances)
+    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     await state.update_data(payer=callback_data['payer'])
     await state.update_data(debtors=list())
-    # ----------------------------------------------------
     user_buttons = list()
     for user in balances:
         user_buttons.append(
@@ -115,10 +92,8 @@ async def get_payer_callback(call: types.CallbackQuery, callback_data: dict, sta
 
 
 async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
-    # ----------------------------------------------- TODO: redis READ
-    balances = copy.deepcopy(db_balances)
+    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     user_state_data = await state.get_data()
-    # -----------------------------------------------
     user_buttons = list()
     if callback_data['debtor'] not in user_state_data['debtors']:
         user_state_data['debtors'].append(callback_data['debtor'])
@@ -147,12 +122,13 @@ async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, s
 
 
 async def select_all_debtors(call: types.CallbackQuery, state: FSMContext):
+    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     user_state_data = await state.get_data()
-    for user in db_balances:
+    for user in balances:
         if user not in user_state_data['debtors']:
             user_state_data['debtors'].append(user)
     user_buttons = list()
-    for user in db_balances:
+    for user in balances:
         user_buttons.append(
             InlineKeyboardButton(f'\u2611 {user}', callback_data=debtor_cb.new(msg_id=call.message.message_id, debtor=user))
         )
@@ -203,23 +179,23 @@ async def get_payment_comment(msg: types.Message, state: FSMContext):
         'payer': user_state_data['payer'],
         'sum': user_state_data['payment_sum'],
         'debtors': user_state_data['debtors'],
-        'comment': payment_comment
-    }, payments_to_add=db_payments, balances_to_add=db_balances)
+        'comment': payment_comment,
+        'date': datetime.datetime.now().strftime('%d.%m.%Y - %H:%M')
+    }, chat_id=msg.chat.id, redis=RDS)
     await msg.answer('Payment added')
     await state.finish()
 
 
 async def finish_payment_add_callback(call: types.CallbackQuery, state: FSMContext):
-    # ----------------------------------------------- TODO: redis READ
     user_state_data = await state.get_data()
-    # -----------------------------------------------
 
     add_payment(payment={
         'payer': user_state_data['payer'],
         'sum': user_state_data['payment_sum'],
         'debtors': user_state_data['debtors'],
-        'comment': ''
-    }, payments_to_add=db_payments, balances_to_add=db_balances)
+        'comment': '',
+        'date': datetime.datetime.now().strftime('%d.%m.%Y - %H:%M')
+    }, chat_id=call.message.chat.id, redis=RDS)
     await call.message.answer('Payment added')
     await state.finish()
     await call.bot.answer_callback_query(call.id)
@@ -232,12 +208,11 @@ async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 async def end_counting(msg: types.Message):
-    payments = balances_to_payments(balances=db_balances)
+    payments = balances_to_payments(chat_id=msg.chat.id, redis=RDS)
     await msg.answer(text=payments.__str__())
 
 
 def register_start_handlers(dp: Dispatcher):
-    dp.register_message_handler(register_person, commands='reg', state='*')
     dp.register_message_handler(register_payment, commands='pay', state='*')
     dp.register_message_handler(end_counting, commands='end', state='*')
 
