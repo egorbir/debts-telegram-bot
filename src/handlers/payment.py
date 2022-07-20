@@ -1,13 +1,12 @@
-import copy
 import datetime
 import re
 
 from aiogram import Dispatcher, types
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.callback_data import CallbackData
 
+from .constants import payer_cb, AddPayment, debtor_cb
 from ..data.redis_interface import RedisInterface
 from ..utils.transferring_debts import add_payment, balances_to_payments
 
@@ -23,24 +22,8 @@ from ..utils.transferring_debts import add_payment, balances_to_payments
 
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
 
-# db_balances = {
-#     '@EgorBir': 0,
-#     '@BirYo': 0,
-#     '@egorbir_bg': 0
-# }
 
-payer_cb = CallbackData('payer', 'msg_id', 'payer')
-debtor_cb = CallbackData('debtor', 'msg_id', 'debtor')
-
-
-class AddPayment(StatesGroup):
-    waiting_for_payer = State()
-    waiting_for_debtors = State()
-    waiting_for_sum = State()
-    waiting_for_comment = State()
-
-
-async def register_payment(msg: types.Message, state: FSMContext):
+async def register_payment(msg: types.Message):
     balances = RDS.read_chat_balances(chat_id=msg.chat.id)
     buttons = list()
     for user in balances:
@@ -54,7 +37,7 @@ async def register_payment(msg: types.Message, state: FSMContext):
     await AddPayment.waiting_for_payer.set()
 
 
-async def back_payer_callback(call: types.CallbackQuery, state: FSMContext):
+async def back_payer_callback(call: types.CallbackQuery):
     balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     buttons = list()
     for user in balances:
@@ -145,7 +128,7 @@ async def select_all_debtors(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(text=message, reply_markup=keyboard)
 
 
-async def selection_done_callback(call: types.CallbackQuery):
+async def done_select_callback(call: types.CallbackQuery):
     await call.message.answer('Enter sum of payment:')
     await AddPayment.waiting_for_sum.set()
 
@@ -167,7 +150,7 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
         await msg.answer('Payment sum is not valid. Repeat:')
 
 
-async def need_payment_comment_callback(call: types.CallbackQuery, state: FSMContext):
+async def payment_comment_callback(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer('Enter comment')
     await call.bot.answer_callback_query(call.id)
 
@@ -186,7 +169,7 @@ async def get_payment_comment(msg: types.Message, state: FSMContext):
     await state.finish()
 
 
-async def finish_payment_add_callback(call: types.CallbackQuery, state: FSMContext):
+async def finish_pay_add_callback(call: types.CallbackQuery, state: FSMContext):
     user_state_data = await state.get_data()
 
     add_payment(payment={
@@ -212,7 +195,7 @@ async def end_counting(msg: types.Message):
     await msg.answer(text=payments.__str__())
 
 
-def register_start_handlers(dp: Dispatcher):
+def register_payment_handlers(dp: Dispatcher):
     dp.register_message_handler(register_payment, commands='pay', state='*')
     dp.register_message_handler(end_counting, commands='end', state='*')
 
@@ -221,9 +204,9 @@ def register_start_handlers(dp: Dispatcher):
 
     dp.register_callback_query_handler(get_payer_callback, payer_cb.filter(), state=AddPayment.waiting_for_payer)
     dp.register_callback_query_handler(get_debtors_callback, debtor_cb.filter(), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(back_payer_callback, lambda c: c.data.startswith('back'), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(select_all_debtors, lambda c: c.data.startswith('all'), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(selection_done_callback, lambda c: c.data.startswith('done'), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(need_payment_comment_callback, lambda c: c.data.startswith('comment'), state=AddPayment.waiting_for_comment)
-    dp.register_callback_query_handler(finish_payment_add_callback, lambda c: c.data.startswith('finish'), state=AddPayment.waiting_for_comment)
-    dp.register_callback_query_handler(cancel_callback, lambda c: c.data.startswith('cancel'), state='*')
+    dp.register_callback_query_handler(back_payer_callback, Text('back'), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(select_all_debtors, Text('all_debtors'), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(done_select_callback, Text('done_debtors'), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(payment_comment_callback, Text('comment'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(finish_pay_add_callback, Text('finish'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')
