@@ -37,7 +37,7 @@ def add_payment(payment: dict, chat_id: str, redis: RedisInterface):
     """
 
     redis.increase_chat_user_balance(chat_id=chat_id, user=payment['payer'], increase_sum=payment['sum'])
-    shared_payment = round(payment['sum'] / len(payment['debtors']))
+    shared_payment = round(payment['sum'] / len(payment['debtors']), ndigits=2)
     for debtor in payment['debtors']:
         redis.decrease_chat_user_balance(chat_id=chat_id, user=debtor, decrease_sum=shared_payment)
     redis.add_payment(chat_id=chat_id, payment=payment)
@@ -53,7 +53,8 @@ def normalize_balances(balances: dict):
 
     b_sum = sum(balances.values())
     if b_sum != 0:
-        balances[random.choice(list(balances.keys()))] -= b_sum
+        random_user = random.choice(list(balances.keys()))
+        balances[random_user] = float(format(balances[random_user] - b_sum, '.2f'))
     return balances
 
 

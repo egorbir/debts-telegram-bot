@@ -39,12 +39,12 @@ class RedisInterface:
     # TODO подумать надо ли оно, может проще читать целиком, менять и целиком записывать
     def increase_chat_user_balance(self, chat_id: str, user: str, increase_sum: float):
         balances = self.read_chat_balances(chat_id=chat_id)
-        balances[user] += increase_sum
+        balances[user] = float(format(balances[user] + increase_sum, '.2f'))
         self.write_chat_balances(chat_id=chat_id, balances=balances)
 
     def decrease_chat_user_balance(self, chat_id: str, user: str, decrease_sum: float):
         balances = self.read_chat_balances(chat_id=chat_id)
-        balances[user] -= decrease_sum
+        balances[user] = float(format(balances[user] - decrease_sum, '.2f'))
         self.write_chat_balances(chat_id=chat_id, balances=balances)
 
     def initialize_chat_redis(self, chat_id: str):

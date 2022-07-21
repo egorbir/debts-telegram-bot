@@ -1,12 +1,14 @@
 import datetime
 import re
+from typing import Union
 
 from aiogram import Dispatcher, types
-from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from .constants import payer_cb, AddPayment, debtor_cb
+from .utils import create_payers_keyboard, create_debtors_keyboard
 from ..data.redis_interface import RedisInterface
 from ..utils.transferring_debts import add_payment, balances_to_payments
 
@@ -23,85 +25,57 @@ from ..utils.transferring_debts import add_payment, balances_to_payments
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
 
 
-async def register_payment(msg: types.Message):
-    balances = RDS.read_chat_balances(chat_id=msg.chat.id)
-    buttons = list()
-    for user in balances:
-        buttons.append(InlineKeyboardButton(
-            user,
-            callback_data=payer_cb.new(msg_id=msg.message_id, payer=user)
-        ))
-    keyboard = InlineKeyboardMarkup().add(*buttons)
+async def register_payment(msg: Union[types.Message, types.CallbackQuery]):
+    # Multipurpose handler for both '/pay' command and 'back' inline button
+    chat_id = msg.chat.id if isinstance(msg, types.Message) else msg.message.chat.id
+    balances = RDS.read_chat_balances(chat_id=chat_id)
     message = 'Выбери, кто платил'
-    await msg.answer(reply_markup=keyboard, text=message)
+    payers_keyboard = create_payers_keyboard(balances=balances)
+    if isinstance(msg, types.Message):
+        await msg.answer(
+            reply_markup=payers_keyboard, text=message
+        )
+    else:
+        await msg.message.edit_text(
+            reply_markup=create_payers_keyboard(balances=balances), text=message
+        )
     await AddPayment.waiting_for_payer.set()
 
 
-async def back_payer_callback(call: types.CallbackQuery):
-    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
-    buttons = list()
-    for user in balances:
-        buttons.append(InlineKeyboardButton(
-            user,
-            callback_data=payer_cb.new(msg_id=call.message.message_id, payer=user)
-        ))
-    keyboard = InlineKeyboardMarkup().add(*buttons)
-    message = 'Выбери, кто платил'
-    await call.message.edit_text(reply_markup=keyboard, text=message)
-    await AddPayment.waiting_for_payer.set()
-
-
-async def get_payer_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def payer_select_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    # Save selected payer to storage
     balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     await state.update_data(payer=callback_data['payer'])
     await state.update_data(debtors=list())
-    user_buttons = list()
-    for user in balances:
-        user_buttons.append(
-            InlineKeyboardButton(user, callback_data=debtor_cb.new(msg_id=call.message.message_id, debtor=user))
-        )
-    tech_buttons = [
-        InlineKeyboardButton('\u21A9 Back', callback_data='back'),
-        InlineKeyboardButton('\u2714 All', callback_data='all_debtors'),
-        InlineKeyboardButton('\u274C Cancel', callback_data='cancel'),
-        InlineKeyboardButton('\u2705 Done', callback_data='done_debtors')
-    ]
-    keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
-    keyboard.row(*tech_buttons)
 
+    # Start next step rendering
     message = 'Выбери, за кого платил'
-    await call.message.edit_text(text=message, reply_markup=keyboard)
+    await call.message.edit_text(
+        text=message,
+        reply_markup=create_debtors_keyboard(
+            balances=balances,
+            selected_debtors=list()
+        )
+    )
     await AddPayment.waiting_for_debtors.set()
 
 
 async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
     user_state_data = await state.get_data()
-    user_buttons = list()
     if callback_data['debtor'] not in user_state_data['debtors']:
         user_state_data['debtors'].append(callback_data['debtor'])
     else:
         user_state_data['debtors'].remove(callback_data['debtor'])
-    for user in balances:
-        if user in user_state_data['debtors']:
-            btn_txt = f'\u2611 {user}'
-        else:
-            btn_txt = user
-
-        user_buttons.append(
-            InlineKeyboardButton(btn_txt, callback_data=debtor_cb.new(msg_id=call.message.message_id, debtor=user))
-        )
-    tech_buttons = [
-        InlineKeyboardButton('\u21A9 Back', callback_data='back'),
-        InlineKeyboardButton('\u2714 All', callback_data='all_debtors'),
-        InlineKeyboardButton('\u274C Cancel', callback_data='cancel'),
-        InlineKeyboardButton('\u2705 Done', callback_data='done_debtors')
-    ]
-    keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
-    keyboard.row(*tech_buttons)
     message = 'Выбери, за кого платил'
     await state.update_data(debtors=user_state_data['debtors'])
-    await call.message.edit_text(text=message, reply_markup=keyboard)
+    await call.message.edit_text(
+        text=message,
+        reply_markup=create_debtors_keyboard(
+            balances=balances,
+            selected_debtors=user_state_data['debtors']
+        )
+    )
 
 
 async def select_all_debtors(call: types.CallbackQuery, state: FSMContext):
@@ -110,22 +84,15 @@ async def select_all_debtors(call: types.CallbackQuery, state: FSMContext):
     for user in balances:
         if user not in user_state_data['debtors']:
             user_state_data['debtors'].append(user)
-    user_buttons = list()
-    for user in balances:
-        user_buttons.append(
-            InlineKeyboardButton(f'\u2611 {user}', callback_data=debtor_cb.new(msg_id=call.message.message_id, debtor=user))
-        )
-    tech_buttons = [
-        InlineKeyboardButton('\u21A9 Back', callback_data='back'),
-        InlineKeyboardButton('\u2714 All', callback_data='all_debtors'),
-        InlineKeyboardButton('\u274C Cancel', callback_data='cancel'),
-        InlineKeyboardButton('\u2705 Done', callback_data='done_debtors')
-    ]
-    keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
-    keyboard.row(*tech_buttons)
     message = 'Выбери, за кого платил'
     await state.update_data(debtors=user_state_data['debtors'])
-    await call.message.edit_text(text=message, reply_markup=keyboard)
+    await call.message.edit_text(
+        text=message,
+        reply_markup=create_debtors_keyboard(
+            balances=balances,
+            selected_debtors=user_state_data['debtors']
+        )
+    )
 
 
 async def done_select_callback(call: types.CallbackQuery):
@@ -150,7 +117,7 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
         await msg.answer('Payment sum is not valid. Repeat:')
 
 
-async def payment_comment_callback(call: types.CallbackQuery, state: FSMContext):
+async def payment_comment_callback(call: types.CallbackQuery):
     await call.message.answer('Enter comment')
     await call.bot.answer_callback_query(call.id)
 
@@ -169,7 +136,7 @@ async def get_payment_comment(msg: types.Message, state: FSMContext):
     await state.finish()
 
 
-async def finish_pay_add_callback(call: types.CallbackQuery, state: FSMContext):
+async def finish_add_pay_callback(call: types.CallbackQuery, state: FSMContext):
     user_state_data = await state.get_data()
 
     add_payment(payment={
@@ -202,11 +169,11 @@ def register_payment_handlers(dp: Dispatcher):
     dp.register_message_handler(get_payment_sum, state=AddPayment.waiting_for_sum)
     dp.register_message_handler(get_payment_comment, state=AddPayment.waiting_for_comment)
 
-    dp.register_callback_query_handler(get_payer_callback, payer_cb.filter(), state=AddPayment.waiting_for_payer)
+    dp.register_callback_query_handler(payer_select_callback, payer_cb.filter(), state=AddPayment.waiting_for_payer)
     dp.register_callback_query_handler(get_debtors_callback, debtor_cb.filter(), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(back_payer_callback, Text('back'), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(register_payment, Text('back'), state=AddPayment.waiting_for_debtors)
     dp.register_callback_query_handler(select_all_debtors, Text('all_debtors'), state=AddPayment.waiting_for_debtors)
     dp.register_callback_query_handler(done_select_callback, Text('done_debtors'), state=AddPayment.waiting_for_debtors)
     dp.register_callback_query_handler(payment_comment_callback, Text('comment'), state=AddPayment.waiting_for_comment)
-    dp.register_callback_query_handler(finish_pay_add_callback, Text('finish'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(finish_add_pay_callback, Text('finish'), state=AddPayment.waiting_for_comment)
     dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')

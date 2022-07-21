@@ -1,8 +1,9 @@
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.utils.callback_data import CallbackData
 
-payer_cb = CallbackData('payer', 'msg_id', 'payer')
-debtor_cb = CallbackData('debtor', 'msg_id', 'debtor')
+payer_cb = CallbackData('payer', 'payer')
+debtor_cb = CallbackData('debtor', 'debtor')
+all_cb = CallbackData('all', 'all')
 
 
 class AddPayment(StatesGroup):
