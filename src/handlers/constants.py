@@ -7,6 +7,11 @@ all_cb = CallbackData('all', 'all')
 back_pay = CallbackData('back_payers')
 
 
+class Register(StatesGroup):
+    initial_startup = State()
+    waiting_for_group_name = State()
+
+
 class AddPayment(StatesGroup):
     waiting_for_payer = State()
     waiting_for_debtors = State()

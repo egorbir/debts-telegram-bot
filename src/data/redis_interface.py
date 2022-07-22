@@ -11,6 +11,13 @@ class RedisInterface:
     def __init__(self, host, port, db, password):
         self.rds = Redis(host=host, port=port, db=db, password=password)
 
+    def read_chat_debts_group_name(self, chat_id: str):
+        return self.rds.hget(chat_id, 'group_name').decode('utf-8') if \
+            self.rds.hget(chat_id, 'group_name') is not None else None
+
+    def write_chat_debts_group_name(self, chat_id: str, name: str):
+        self.rds.hset(chat_id, mapping={'group_name': name})
+
     def read_chat_balances(self, chat_id: str) -> dict:
         raw_balances = self.rds.hget(chat_id, 'balances')
         if raw_balances is not None:
@@ -47,7 +54,8 @@ class RedisInterface:
         balances[user] = float(format(balances[user] - decrease_sum, '.2f'))
         self.write_chat_balances(chat_id=chat_id, balances=balances)
 
-    def initialize_chat_redis(self, chat_id: str):
+    def initialize_chat_redis(self, chat_id: str, group_name: str):
         if not self.rds.exists(chat_id):
+            self.write_chat_debts_group_name(chat_id=chat_id, name=group_name)
             self.write_chat_balances(chat_id=chat_id, balances=dict())
             self.write_chat_payments(chat_id=chat_id, payments=list())
