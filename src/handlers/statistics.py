@@ -23,5 +23,21 @@ async def get_users_payments_stats(msg: types.Message):
     await msg.answer(text=result_message)
 
 
+async def list_payments(msg: types.Message):
+    payments = RDS.read_chat_payments(chat_id=msg.chat.id)  # TODO read from DB instead of redis
+    if len(payments) == 0:
+        await msg.answer('No payments yet')
+    else:
+        reply_msg_template = 'History of payments:\n'
+        for payment in payments:
+            reply_msg_template += f'\nPayment:\n\n{payment["payer"]} payed for {", ".join(payment["debtors"])}\n' \
+                                  f'Sum: {payment["sum"]}\nDate: {payment["date"]}'
+            if payment['comment'] != '':
+                reply_msg_template += f'\nComment: {payment["comment"]}'
+            reply_msg_template += '\n_________________________________\n'
+        await msg.answer(reply_msg_template)
+
+
 def register_statistics_handlers(dp: Dispatcher):
     dp.register_message_handler(get_users_payments_stats, commands='stats', state='*')
+    dp.register_message_handler(list_payments, commands='history', state='*')
