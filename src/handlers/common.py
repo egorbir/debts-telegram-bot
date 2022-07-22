@@ -1,5 +1,6 @@
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 
 from src.data.redis_interface import RedisInterface
 
@@ -43,9 +44,17 @@ async def cancel_command(msg: types.Message, state: FSMContext):
     await state.finish()
 
 
+async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
+    await call.message.answer(text='Canceled')
+    await state.finish()
+    await call.bot.answer_callback_query(call.id)
+
+
 def register_common_handlers(dp: Dispatcher):
     dp.register_message_handler(send_wellcome, commands='start', state='*')
     dp.register_message_handler(register_user, commands='reg', state='*')
     dp.register_message_handler(list_users, commands='list', state='*')
     dp.register_message_handler(get_help, commands='help', state='*')
     dp.register_message_handler(cancel_command, commands='cancel', state='*')
+
+    dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')
