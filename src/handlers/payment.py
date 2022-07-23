@@ -7,21 +7,21 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from .constants import payer_cb, AddPayment, debtor_cb, all_cb, back_pay
+from .constants import payer_cb, AddPayment, debtor_cb, all_cb, back_pay, NotCommandFilter
 from .utils import create_payers_keyboard, create_debtors_keyboard, EMOJIS, edit_user_state_for_debtors, \
     create_comment_keyboard, create_confirmation_keyboard
+from ..data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+from ..data.db_interface import DBInterface
 from ..data.redis_interface import RedisInterface
 from ..utils.transferring_debts import add_payment, balances_to_payments
 
-# DB = DBInterface(
-#     user=DB_USER,
-#     password=DB_PASSWORD,
-#     database=DB_NAME,
-#     host=DB_HOST,
-#     port=DB_PORT
-# )
-#
-# CORE = Core(db=DB)
+DB = DBInterface(
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database_name=DB_NAME,
+    host=DB_HOST,
+    port=DB_PORT
+)
 
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
 
@@ -38,6 +38,10 @@ async def register_payment(msg: Union[types.Message, types.CallbackQuery]):
     # Multipurpose handler for both '/pay' command and 'back' inline button
     chat_id = msg.chat.id if isinstance(msg, types.Message) else msg.message.chat.id
     balances = RDS.read_chat_balances(chat_id=chat_id)
+    if len(balances) < 3:
+        await msg.answer(f'Works with 3 or more people, now - {len(balances)}. '
+                         f'Use /reg command and check who is in group with /list')
+        return
     message = 'Выбери, кто платил'
     payers_keyboard = create_payers_keyboard(balances=balances)
     if isinstance(msg, types.Message):
@@ -202,8 +206,14 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
     :return: None
     """
 
+    chat_id = str(call.message.chat.id)
     user_state_data = await state.get_data()
     add_payment(payment=user_state_data['final_payment'], chat_id=call.message.chat.id, redis=RDS)
+    DB.add_chat_group_payment(
+        chat_id=chat_id,
+        group_name=RDS.read_chat_debts_group_name(chat_id=chat_id),
+        payment=user_state_data['final_payment']
+    )
     await call.message.answer('Payment added')
     await call.answer()
     await state.finish()
@@ -216,12 +226,12 @@ async def end_counting(msg: types.Message):  # TODO finish group counting
 
 def register_payment_handlers(dp: Dispatcher):
     # Commands handlers
-    dp.register_message_handler(register_payment, commands='pay', state='*')
-    dp.register_message_handler(end_counting, commands='end', state='*')
+    dp.register_message_handler(register_payment, commands='pay')
+    dp.register_message_handler(end_counting, commands='end')
 
     # Text messages handlers
     dp.register_message_handler(get_payment_sum, state=AddPayment.waiting_for_sum)
-    dp.register_message_handler(comment_and_finish, state=AddPayment.waiting_for_comment)
+    dp.register_message_handler(comment_and_finish, NotCommandFilter(), state=AddPayment.waiting_for_comment)
 
     # Return to payer choosing callback
     dp.register_callback_query_handler(register_payment, Text('back'), state=AddPayment.waiting_for_debtors)

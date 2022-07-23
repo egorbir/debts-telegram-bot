@@ -2,56 +2,32 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
+from src.data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+from src.data.db_interface import DBInterface
 from src.data.redis_interface import RedisInterface
-from src.handlers.constants import Register
 
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
+DB = DBInterface(
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database_name=DB_NAME,
+    host=DB_HOST,
+    port=DB_PORT
+)
 
 
-async def send_wellcome(msg: types.Message):
-    if RDS.read_chat_debts_group_name(chat_id=msg.chat.id) is not None:
-        await msg.answer('Group is already registered, you can only /restart to create a new one')
+async def status(msg: types.Message):
+    current_group = RDS.read_chat_debts_group_name(chat_id=msg.chat.id)
+    db_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
+    if current_group is None:
+        if db_groups is not None:
+            status_msg = 'There is no group in progress, that could happen because of server shutdown\n' \
+                         'You can continue old group by command /restart'
+        else:
+            status_msg = 'You have not started any debts group yet. Do it with /start command'
     else:
-        hello_message = 'This is bot for counting group debts\nTo start counting enter short group name (ex. the ' \
-                        'name of an event or the country/city of a trip etc.)\nBe careful, this name cannot be ' \
-                        'edited, only restart'
-        await msg.answer(text=hello_message)
-        await Register.waiting_for_group_name.set()
-
-
-async def get_group_name(msg: types.Message, state: FSMContext):
-    group_name = msg.text.strip().replace(' ', '_')
-    RDS.initialize_chat_redis(chat_id=msg.chat.id, group_name=group_name)
-    user_registration_msg = 'Your group started! Now everyone who is in this group please tap the command /reg\n' \
-                            'To exit group use /unreg (you can exit only if there are no payments yet)'
-    await msg.answer('Your group started! Now everyone who is in this group please tap the command /reg')
-    await state.finish()
-
-
-async def register_user(msg: types.Message):
-    username = f'@{msg.from_user.username}'
-    name = f'{msg.from_user.first_name} {msg.from_user.last_name}'
-    redis_balances = RDS.read_chat_balances(chat_id=msg.chat.id)
-    if username not in redis_balances:
-        redis_balances[username] = 0
-        message = f'Good, now you are in group - {username}'
-    else:
-        message = 'Already in group'
-    await msg.answer(text=message)
-    RDS.write_chat_balances(chat_id=msg.chat.id, balances=redis_balances)
-
-
-async def unregister_user(msg: types.Message):
-    username = f'@{msg.from_user.username}'
-    name = f'{msg.from_user.first_name} {msg.from_user.last_name}'
-    balances = RDS.read_chat_balances(chat_id=msg.chat.id)
-    if len(RDS.read_chat_payments(chat_id=msg.chat.id)) == 0:
-        balances.pop(username, None)
-        result_msg = f'User {username} successfully deleted from group'
-        RDS.write_chat_balances(chat_id=msg.chat.id, balances=balances)
-    else:
-        result_msg = 'There are already payments in this group, ypu cannot leave'
-    await msg.answer(result_msg)
+        status_msg = f'Current group - {current_group}, calculation is in progress'
+    await msg.answer(status_msg)
 
 
 async def list_users(msg: types.Message):
@@ -79,12 +55,9 @@ async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 def register_common_handlers(dp: Dispatcher):
-    dp.register_message_handler(send_wellcome, commands='start', state='*')
-    dp.register_message_handler(get_group_name, state=Register.waiting_for_group_name)
-    dp.register_message_handler(register_user, commands='reg', state='*')
-    dp.register_message_handler(unregister_user, commands='unreg', state='*')
-    dp.register_message_handler(list_users, commands='list', state='*')
-    dp.register_message_handler(get_help, commands='help', state='*')
+    dp.register_message_handler(status, commands='status')
+    dp.register_message_handler(list_users, commands='list')
+    dp.register_message_handler(get_help, commands='help')
     dp.register_message_handler(cancel_command, commands='cancel', state='*')
 
     dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')

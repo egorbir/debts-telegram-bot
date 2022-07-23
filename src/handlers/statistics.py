@@ -39,5 +39,5 @@ async def list_payments(msg: types.Message):
 
 
 def register_statistics_handlers(dp: Dispatcher):
-    dp.register_message_handler(get_users_payments_stats, commands='stats', state='*')
-    dp.register_message_handler(list_payments, commands='history', state='*')
+    dp.register_message_handler(get_users_payments_stats, commands='stats')
+    dp.register_message_handler(list_payments, commands='history')

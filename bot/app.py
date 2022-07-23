@@ -5,7 +5,8 @@ from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.utils import executor
 
 from src.data.config import BOT_TOKEN
-from src.handlers import register_payment_handlers, register_common_handlers, register_statistics_handlers
+from src.handlers import register_payment_handlers, register_common_handlers, register_statistics_handlers, \
+    register_start_handlers
 from src.utils.set_bot_commands import set_bot_commands
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ async def startup(dispatcher: Dispatcher):
 
     await set_bot_commands(dispatcher)
 
+    register_start_handlers(dp=dispatcher)
     register_payment_handlers(dp=dispatcher)
     register_common_handlers(dp=dispatcher)
     register_statistics_handlers(dp=dispatcher)
