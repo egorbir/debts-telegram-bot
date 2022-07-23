@@ -145,7 +145,7 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
 
     pattern = r'\d+(\,\d*)?$'
 
-    if re.match(pattern, msg.text.replace('.', ',')):
+    if re.match(pattern, msg.text.replace('.', ',')) and float(msg.text) != 0:
         payment_sum = round(float(msg.text.replace(',', '.')), ndigits=2)
         await state.update_data(payment_sum=payment_sum)
         await AddPayment.waiting_for_comment.set()
@@ -187,7 +187,7 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
     await state.update_data(final_payment=payment)
     msg_txt, keyboard = create_confirmation_keyboard(payment=payment)
     if isinstance(call, types.Message):
-        await call.edit_text(text=msg_txt, reply_markup=keyboard)
+        await call.answer(text=msg_txt, reply_markup=keyboard)
     else:
         await call.message.edit_text(text=msg_txt, reply_markup=keyboard)
     await AddPayment.waiting_for_confirm.set()
@@ -205,6 +205,7 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
     user_state_data = await state.get_data()
     add_payment(payment=user_state_data['final_payment'], chat_id=call.message.chat.id, redis=RDS)
     await call.message.answer('Payment added')
+    await call.answer()
     await state.finish()
 
 
