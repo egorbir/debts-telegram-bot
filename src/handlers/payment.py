@@ -7,7 +7,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from .constants import payer_cb, AddPayment, debtor_cb, all_cb, back_pay, NotCommandFilter
+from .constants import payer_cb, AddPayment, debtor_cb, all_cb, back_pay
 from .utils import create_payers_keyboard, create_debtors_keyboard, EMOJIS, edit_user_state_for_debtors, \
     create_comment_keyboard, create_confirmation_keyboard
 from ..data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
@@ -179,6 +179,9 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
     :return: None
     """
 
+    if call.message.text.startswith('/') or '@RepetitionsBot' in call.message.text:  # TODO replace bot username
+        await call.message.answer('No commands, finish process first')
+        return
     user_state_data = await state.get_data()
     payment_comment = call.text if isinstance(call, types.Message) else ''
     payment = {
@@ -231,7 +234,7 @@ def register_payment_handlers(dp: Dispatcher):
 
     # Text messages handlers
     dp.register_message_handler(get_payment_sum, state=AddPayment.waiting_for_sum)
-    dp.register_message_handler(comment_and_finish, NotCommandFilter(), state=AddPayment.waiting_for_comment)
+    dp.register_message_handler(comment_and_finish, state=AddPayment.waiting_for_comment)
 
     # Return to payer choosing callback
     dp.register_callback_query_handler(register_payment, Text('back'), state=AddPayment.waiting_for_debtors)

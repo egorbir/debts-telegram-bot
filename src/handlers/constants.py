@@ -1,5 +1,3 @@
-from aiogram import types
-from aiogram.dispatcher.filters import Filter
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.utils.callback_data import CallbackData
 
@@ -7,13 +5,6 @@ payer_cb = CallbackData('payer', 'payer')
 debtor_cb = CallbackData('debtor', 'debtor')
 all_cb = CallbackData('all', 'all')
 back_pay = CallbackData('back_payers')
-
-
-class NotCommandFilter(Filter):
-    key = 'not command'
-
-    async def check(self, msg: types.Message) -> bool:
-        return not msg.text.startswith('/') and '@RepetitionsBot' not in msg.text
 
 
 class Register(StatesGroup):

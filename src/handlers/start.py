@@ -36,6 +36,9 @@ async def new_group(msg: types.Message):
 
 
 async def get_group_name(msg: types.Message, state: FSMContext):
+    if msg.text.startswith('/') or '@RepetitionsBot' in msg.text:  # TODO replace bot username
+        await msg.answer('No commands, finish process first')
+        return
     chat_id = str(msg.chat.id)
     group_name = msg.text.strip().replace(' ', '_')
     if group_name not in DB.get_chat_groups(chat_id=chat_id):
@@ -84,6 +87,9 @@ async def restart(msg: types.Message):
 
 
 async def restart_group_name(msg: types.Message, state: FSMContext):
+    if msg.text.startswith('/') or '@RepetitionsBot' in msg.text:  # TODO replace bot username
+        await msg.answer('No commands, finish process first')
+        return
     chat_id = str(msg.chat.id)
     group_name = msg.text.strip().replace(" ", "_")
     if group_name in DB.get_chat_groups(chat_id=chat_id):
@@ -106,7 +112,7 @@ def register_start_handlers(dp: Dispatcher):
     dp.register_message_handler(start, commands='start')
     dp.register_message_handler(new_group, commands='newgroup')
     dp.register_message_handler(restart, commands='restart')
-    dp.register_message_handler(restart_group_name, NotCommandFilter(), state=Register.waiting_for_restart_group_name)
-    dp.register_message_handler(get_group_name, NotCommandFilter(), state=Register.waiting_for_group_name)
+    dp.register_message_handler(restart_group_name, state=Register.waiting_for_restart_group_name)
+    dp.register_message_handler(get_group_name, state=Register.waiting_for_group_name)
     dp.register_message_handler(register_user, commands='reg')
     dp.register_message_handler(unregister_user, commands='unreg')
