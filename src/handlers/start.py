@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from src.data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
 from src.data.db_interface import DBInterface
 from src.data.redis_interface import RedisInterface
-from src.handlers.constants import Register, NotCommandFilter
+from src.handlers.constants import Register
 from src.utils.transferring_debts import payments_to_balances
 
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env

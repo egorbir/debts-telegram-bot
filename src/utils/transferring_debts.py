@@ -1,4 +1,3 @@
-import copy
 import random
 from collections import defaultdict
 
@@ -97,9 +96,9 @@ def payments_to_balances(payments: list[dict]) -> dict[str, int]:
     :return: recovered user balances
     """
 
-    payments = copy.deepcopy(payments)
     balances = defaultdict(lambda: 0)
     for payment in payments:
-        balances[payment['from']] -= payment['payment']
-        balances[payment['to']] += payment['payment']
+        balances[payment['payer']] -= payment['sum']
+        for debtor in payment['debtors']:
+            balances[debtor] += payment['sum']
     return dict(balances)

@@ -57,7 +57,6 @@ class RedisInterface:
     def initialize_chat_redis(self, chat_id: str, group_name: str, balances: dict = None, payments: list = None):
         init_balances = balances or dict()
         init_payments = payments or list()
-        if not self.rds.exists(chat_id):
-            self.write_chat_debts_group_name(chat_id=chat_id, name=group_name)
-            self.write_chat_balances(chat_id=chat_id, balances=init_balances)
-            self.write_chat_payments(chat_id=chat_id, payments=init_payments)
+        self.write_chat_debts_group_name(chat_id=chat_id, name=group_name)
+        self.write_chat_balances(chat_id=chat_id, balances=init_balances)
+        self.write_chat_payments(chat_id=chat_id, payments=init_payments)
