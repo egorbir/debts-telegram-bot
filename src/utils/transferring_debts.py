@@ -57,7 +57,7 @@ def normalize_balances(balances: dict):
     return balances
 
 
-def balances_to_payments(chat_id: str, redis: RedisInterface) -> list[dict]:
+def balances_to_transfers(chat_id: str, redis: RedisInterface) -> list[dict]:
     """
     Convert balances to money transfers in the end of the work.
     Creates list of transfers without any extra money travel
@@ -81,13 +81,12 @@ def balances_to_payments(chat_id: str, redis: RedisInterface) -> list[dict]:
             'to': min_positive['name'],
             'payment': sum_of_transfer
         })
-        balances[min_negative['name']] += sum_of_transfer
-        balances[min_positive['name']] -= sum_of_transfer
-    redis.write_chat_balances(chat_id=chat_id, balances=balances)  # TODO надо ли писать пустые балансы в редис??
+        balances[min_negative['name']] = float(format(balances[min_negative['name']] + sum_of_transfer, '.2f'))
+        balances[min_positive['name']] = float(format(balances[min_positive['name']] - sum_of_transfer, '.2f'))
     return transfers
 
 
-def payments_to_balances(payments: list[dict]) -> dict[str, int]:
+def payments_to_balances(payments: list[dict]) -> dict[str, float]:
     """
     Convert history of payments to user balances.
     Can be useful in case of server restart and loss of actual balances data from Redis
@@ -96,9 +95,10 @@ def payments_to_balances(payments: list[dict]) -> dict[str, int]:
     :return: recovered user balances
     """
 
-    balances = defaultdict(lambda: 0)
+    balances = defaultdict(lambda: 0.0)
     for payment in payments:
-        balances[payment['payer']] -= payment['sum']
+        balances[payment['payer']] = float(format(balances[payment['payer']] + payment['sum'], '.2f'))
+        shared_payment = round(payment['sum'] / len(payment['debtors']))
         for debtor in payment['debtors']:
-            balances[debtor] += payment['sum']
+            balances[debtor] = float(format(balances[debtor] - shared_payment, '.2f'))
     return dict(balances)

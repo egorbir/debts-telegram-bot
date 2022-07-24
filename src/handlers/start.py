@@ -5,6 +5,7 @@ from src.data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 from src.data.db_interface import DBInterface
 from src.data.redis_interface import RedisInterface
 from src.handlers.constants import Register
+from src.handlers.utils import create_cancel_keyboard
 from src.utils.transferring_debts import payments_to_balances
 
 RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
@@ -29,9 +30,8 @@ async def start(msg: types.Message):
 
 
 async def new_group(msg: types.Message):
-    msg_txt = 'Enter the name of new group. Be careful, all new payments will be saved to this new group. ' \
-              'Or type /cancel command'
-    await msg.answer(msg_txt)
+    msg_txt = 'Enter the name of new group. Be careful, all new payments will be saved to this new group.'
+    await msg.answer(text=msg_txt, reply_markup=create_cancel_keyboard())
     await Register.waiting_for_group_name.set()
 
 
@@ -49,7 +49,7 @@ async def get_group_name(msg: types.Message, state: FSMContext):
         await msg.answer(user_registration_msg)
         await state.finish()
     else:
-        await msg.answer('Group with this name already exists. Type another name.')
+        await msg.answer(text='Group with this name already exists. Type another name.')
 
 
 async def register_user(msg: types.Message):
@@ -82,7 +82,7 @@ async def restart(msg: types.Message):
     old_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
     message = f'Old groups - {", ".join([g.replace("_", " ") for g in old_groups])}. Type exact name of the ' \
               f'group to restart it'
-    await msg.answer(message)
+    await msg.answer(text=message, reply_markup=create_cancel_keyboard())
     await Register.waiting_for_restart_group_name.set()
 
 
@@ -105,7 +105,7 @@ async def restart_group_name(msg: types.Message, state: FSMContext):
         await state.finish()
     else:
         message = 'No such group retype EXACT name'
-    await msg.answer(message)
+    await msg.answer(text=message)
 
 
 def register_start_handlers(dp: Dispatcher):

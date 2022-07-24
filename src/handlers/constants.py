@@ -19,3 +19,4 @@ class AddPayment(StatesGroup):
     waiting_for_sum = State()
     waiting_for_comment = State()
     waiting_for_confirm = State()
+    finish_all = State()

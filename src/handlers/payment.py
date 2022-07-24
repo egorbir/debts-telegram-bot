@@ -9,11 +9,11 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from .constants import AddPayment, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
-    create_payers_keyboard, edit_user_state_for_debtors
+    create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
 from ..data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 from ..data.db_interface import DBInterface
 from ..data.redis_interface import RedisInterface
-from ..utils.transferring_debts import add_payment, balances_to_payments
+from ..utils.transferring_debts import add_payment, balances_to_transfers
 
 DB = DBInterface(
     user=DB_USER,
@@ -179,8 +179,10 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
     :return: None
     """
 
-    if call.message.text.startswith('/') or '@RepetitionsBot' in call.message.text:  # TODO replace bot username
-        await call.message.answer('No commands, finish process first')
+    comment_msg = call.message if isinstance(call, types.CallbackQuery) else call
+
+    if comment_msg.text.startswith('/') or '@RepetitionsBot' in comment_msg.text:  # TODO replace bot username
+        await call.answer('No commands, finish process first')
         return
     user_state_data = await state.get_data()
     payment_comment = call.text if isinstance(call, types.Message) else ''
@@ -222,9 +224,31 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 
-async def end_counting(msg: types.Message):  # TODO finish group counting
-    payments = balances_to_payments(chat_id=msg.chat.id, redis=RDS)
-    await msg.answer(text=payments.__str__())
+async def end_counting(msg: types.Message, state: FSMContext):
+    transfers = balances_to_transfers(chat_id=msg.chat.id, redis=RDS)
+    await state.update_data(transfers=transfers)
+    if len(transfers) == 0:
+        transfers_message = 'No money transfers needed'
+    else:
+        transfers_message = 'To pay all debts:\n\n'
+    transfers_message += '\n\n'.join(f'{t["from"]} pays {t["payment"]} to {t["to"]}' for t in transfers)
+    await msg.answer(text=transfers_message, reply_markup=create_debts_payments_confirmation_keyboard())
+    await AddPayment.finish_all.set()
+
+
+async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext):
+    user_state_data = await state.get_data()
+    for transfer in user_state_data['transfers']:
+        add_payment(payment={
+            'payer': transfer['from'],
+            'sum': transfer['payment'],
+            'debtors': [transfer['to']],
+            'comment': 'Debt payback',
+            'date': datetime.datetime.now().strftime('%d.%m.%Y - %H:%M')
+        }, chat_id=call.message.chat.id, redis=RDS)
+    await call.message.answer('All debts payed, payments written to history')
+    await call.answer()
+    await state.finish()
 
 
 def register_payment_handlers(dp: Dispatcher):
@@ -253,3 +277,5 @@ def register_payment_handlers(dp: Dispatcher):
     dp.register_callback_query_handler(comment_and_finish, Text('finish'), state=AddPayment.waiting_for_comment)
     # Confirmation callback
     dp.register_callback_query_handler(confirm_payment, Text('confirm'), state=AddPayment.waiting_for_confirm)
+    # All debts payback callback
+    dp.register_callback_query_handler(all_debts_payed_callback, Text('payed_all'), state=AddPayment.finish_all)

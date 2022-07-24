@@ -56,6 +56,14 @@ def create_comment_keyboard():
     return keyboard
 
 
+def create_debts_payments_confirmation_keyboard():
+    transfers_buttons = [
+        InlineKeyboardButton(f'{EMOJIS["done"]} All debts payed!', callback_data='payed_all'),
+        InlineKeyboardButton(f'{EMOJIS["back"]} Cancel and continue', callback_data='cancel')
+    ]
+    return InlineKeyboardMarkup().add(*transfers_buttons)
+
+
 def create_confirmation_keyboard(payment: dict):
     message_txt = f'Payment:\n\n{payment["payer"]} payed for {", ".join(payment["debtors"])}\n\n' \
                   f'Sum: {payment["sum"]}\n\nComment: {payment["comment"]}'
@@ -65,6 +73,11 @@ def create_confirmation_keyboard(payment: dict):
     ]
     keyboard = InlineKeyboardMarkup().add(*buttons)
     return message_txt, keyboard
+
+
+def create_cancel_keyboard():
+    cancel_btn = InlineKeyboardButton(f'{EMOJIS["cancel"]} Cancel', callback_data='cancel')
+    return InlineKeyboardMarkup().add(cancel_btn)
 
 
 def edit_user_state_for_debtors(debtors_state: list, callback_data: dict, balances_users: list):
