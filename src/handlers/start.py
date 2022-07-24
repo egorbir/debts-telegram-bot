@@ -1,7 +1,7 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
-from src.data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+from src.data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 from src.data.db_interface import DBInterface
 from src.data.redis_interface import RedisInterface
 from src.handlers.constants import Register

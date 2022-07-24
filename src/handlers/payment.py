@@ -5,12 +5,12 @@ from typing import Union
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from .constants import payer_cb, AddPayment, debtor_cb, all_cb, back_pay
-from .utils import create_payers_keyboard, create_debtors_keyboard, EMOJIS, edit_user_state_for_debtors, \
-    create_comment_keyboard, create_confirmation_keyboard
-from ..data.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+from .constants import AddPayment, all_cb, back_pay, debtor_cb, payer_cb
+from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
+    create_payers_keyboard, edit_user_state_for_debtors
+from ..data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 from ..data.db_interface import DBInterface
 from ..data.redis_interface import RedisInterface
 from ..utils.transferring_debts import add_payment, balances_to_payments

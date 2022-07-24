@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.handlers.constants import payer_cb, debtor_cb, all_cb
+from src.handlers.constants import all_cb, debtor_cb, payer_cb
 
 EMOJIS = {
     'back': '\u21A9',

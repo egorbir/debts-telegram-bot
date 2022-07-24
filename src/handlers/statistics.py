@@ -1,4 +1,4 @@
-from aiogram import types, Dispatcher
+from aiogram import Dispatcher, types
 
 from src.data.redis_interface import RedisInterface
 
