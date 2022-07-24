@@ -7,23 +7,10 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from .constants import AddPayment, all_cb, back_pay, debtor_cb, payer_cb
+from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
     create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
-from ..data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-from ..data.db_interface import DBInterface
-from ..data.redis_interface import RedisInterface
 from ..utils.transferring_debts import add_payment, balances_to_transfers
-
-DB = DBInterface(
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database_name=DB_NAME,
-    host=DB_HOST,
-    port=DB_PORT
-)
-
-RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
 
 
 async def register_payment(msg: Union[types.Message, types.CallbackQuery]):

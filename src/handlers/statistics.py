@@ -1,8 +1,6 @@
 from aiogram import Dispatcher, types
 
-from src.data.redis_interface import RedisInterface
-
-RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)
+from src.handlers.constants import RDS
 
 
 async def get_users_payments_stats(msg: types.Message):

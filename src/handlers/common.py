@@ -2,18 +2,7 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
-from src.data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-from src.data.db_interface import DBInterface
-from src.data.redis_interface import RedisInterface
-
-RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
-DB = DBInterface(
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database_name=DB_NAME,
-    host=DB_HOST,
-    port=DB_PORT
-)
+from src.handlers.constants import DB, RDS
 
 
 async def status(msg: types.Message):
