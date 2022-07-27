@@ -1,9 +1,13 @@
 from aiogram import Dispatcher, types
 
-from src.handlers.constants import RDS
+from src.handlers.constants import RDS, DB
 
 
 async def get_users_payments_stats(msg: types.Message):
+    """
+    Print statistics of users payments amounts
+    """
+
     payments = RDS.read_chat_payments(chat_id=msg.chat.id)
     stats = dict()
     for payment in payments:
@@ -22,7 +26,13 @@ async def get_users_payments_stats(msg: types.Message):
 
 
 async def list_payments(msg: types.Message):
-    payments = RDS.read_chat_payments(chat_id=msg.chat.id)  # TODO read from DB instead of redis
+    """
+    Print payments history
+    """
+
+    chat_id = str(msg.chat.id)
+    group_name = RDS.read_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)
     if len(payments) == 0:
         await msg.answer('No payments yet')
     else:

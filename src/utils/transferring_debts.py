@@ -4,26 +4,6 @@ from collections import defaultdict
 from src.data.redis_interface import RedisInterface
 
 
-def add_payment_total_redis(payment: dict, chat_id: str, redis: RedisInterface):
-    """
-    Get payment dict, write it to redis & change redis balances.
-    Balances change: full read -> edit -> full write
-
-    :param payment: payment dict from the bot
-    :param chat_id: id of chat where the bot is running
-    :param redis: Redis Interface
-    :return: No return
-    """
-
-    balances = redis.read_chat_balances(chat_id=chat_id)
-    balances[payment['payer']] += payment['sum']
-    shared_payment = round(payment['sum'] / len(payment['debtors']))
-    for debtor in payment['debtors']:
-        balances[debtor] -= shared_payment
-    redis.add_payment(chat_id=chat_id, payment=payment)
-    redis.write_chat_balances(chat_id=chat_id, balances=balances)
-
-
 def add_payment(payment: dict, chat_id: str, redis: RedisInterface):
     """
     Get payment dict, write it to redis & change redis balances.

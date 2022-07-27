@@ -6,6 +6,10 @@ from src.handlers.constants import DB, RDS
 
 
 async def status(msg: types.Message):
+    """
+    Status command. Checks database and redis and prints current status of what is going on
+    """
+
     current_group = RDS.read_chat_debts_group_name(chat_id=msg.chat.id)
     db_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
     if current_group is None:
@@ -20,6 +24,10 @@ async def status(msg: types.Message):
 
 
 async def list_users(msg: types.Message):
+    """
+    Prints all users who registered for current group of debts with /reg command
+    """
+
     balances = RDS.read_chat_balances(msg.chat.id)
     result_message_text = 'No one is in debts group' if len(balances) == 0 else 'Now in the debts counting are:\n'
     for user in balances:
@@ -28,16 +36,28 @@ async def list_users(msg: types.Message):
 
 
 async def get_help(msg: types.Message):
+    """
+    Prints help message
+    """
+
     help_message = 'This later will be a long help message about this bot'
     await msg.answer(text=help_message)
 
 
 async def cancel_command(msg: types.Message, state: FSMContext):
+    """
+    Cancels any action that is in progress and finishes FSM state
+    """
+
     await msg.answer(text='Canceled')
     await state.finish()
 
 
 async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
+    """
+    Callback to cancel any action and finish FSM state
+    """
+
     await call.message.answer(text='Canceled')
     await state.finish()
     await call.bot.answer_callback_query(call.id)

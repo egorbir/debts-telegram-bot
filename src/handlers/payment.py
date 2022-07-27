@@ -10,6 +10,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
     create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
+from ..data.config import BOT_NAME
 from ..utils.transferring_debts import add_payment, balances_to_transfers
 
 
@@ -168,7 +169,7 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
 
     comment_msg = call.message if isinstance(call, types.CallbackQuery) else call
 
-    if comment_msg.text.startswith('/') or '@RepetitionsBot' in comment_msg.text:  # TODO replace bot username
+    if comment_msg.text.startswith('/') or BOT_NAME in comment_msg.text:
         await call.answer('No commands, finish process first')
         return
     user_state_data = await state.get_data()
@@ -191,7 +192,7 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
 
 async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
     """
-    After payment confirmation save it to Redis. Clear temp storage.
+    After payment confirmation save it to Redis and DB. Clear temp storage.
 
     :param call: Callback
     :param state: redis storage
@@ -212,6 +213,14 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
 
 
 async def end_counting(msg: types.Message, state: FSMContext):
+    """
+    Finish all payments, transform all balances to money transfers. Add keyboard with cancel and pay buttons -
+    either pay all and zero balances or continue payments add
+
+    :param msg: Message
+    :param state: redis storage
+    """
+
     transfers = balances_to_transfers(chat_id=msg.chat.id, redis=RDS)
     await state.update_data(transfers=transfers)
     if len(transfers) == 0:
@@ -224,6 +233,12 @@ async def end_counting(msg: types.Message, state: FSMContext):
 
 
 async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext):
+    """
+    If user chose pay all - add every transfer to DB as a single payment (balances - zero)
+    :param call: Callback
+    :param state: redis storage
+    """
+
     user_state_data = await state.get_data()
     for transfer in user_state_data['transfers']:
         add_payment(payment={
