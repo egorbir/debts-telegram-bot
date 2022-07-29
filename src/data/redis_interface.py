@@ -9,8 +9,8 @@ class RedisInterface:
     Interface to implement redis interaction logic
     """
 
-    def __init__(self, host, port, db, password):
-        self.rds = Redis(host=host, port=port, db=db, password=password)
+    def __init__(self, host, port, password):
+        self.rds = Redis(host=host, port=port, password=password)
 
     def read_chat_debts_group_name(self, chat_id: str) -> Optional[str]:
         """

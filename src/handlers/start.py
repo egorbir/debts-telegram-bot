@@ -1,7 +1,7 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
-from src.data.config import BOT_NAME
+from src.data.credentials import BOT_NAME
 from src.handlers.constants import DB, RDS, Register
 from src.handlers.utils import create_cancel_keyboard
 from src.utils.transferring_debts import payments_to_balances

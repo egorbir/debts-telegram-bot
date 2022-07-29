@@ -4,9 +4,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.utils import executor
 
-from src.data.config import BOT_TOKEN
-from src.handlers import register_payment_handlers, register_common_handlers, register_statistics_handlers, \
-    register_start_handlers
+from src.data.credentials import BOT_TOKEN, REDIS_HOST, REDIS_PASS, REDIS_PORT
+from src.handlers import register_common_handlers, register_payment_handlers, register_start_handlers, \
+    register_statistics_handlers
 from src.utils.set_bot_commands import set_bot_commands
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ async def shutdown(dispatcher: Dispatcher):
 
 if __name__ == '__main__':
     bot = Bot(token=BOT_TOKEN, parse_mode=types.ParseMode.HTML)
-    redis_storage = RedisStorage2(host='localhost', port=6379, db=1)
+    redis_storage = RedisStorage2(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS, db=1)
     dp = Dispatcher(bot=bot, storage=redis_storage)
 
     executor.start_polling(dispatcher=dp, on_startup=startup, on_shutdown=shutdown)

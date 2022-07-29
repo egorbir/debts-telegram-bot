@@ -1,7 +1,7 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.callback_data import CallbackData
 
-from src.data.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from src.data.credentials import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER, REDIS_HOST, REDIS_PASS, REDIS_PORT
 from src.data.db_interface import DBInterface
 from src.data.redis_interface import RedisInterface
 
@@ -15,7 +15,7 @@ DB = DBInterface(
 )
 
 # Redis interface instance
-RDS = RedisInterface(host='localhost', port=6379, db=0, password=None)  # TODO from .env
+RDS = RedisInterface(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS)
 
 
 # Different callback data to use in different keyboards

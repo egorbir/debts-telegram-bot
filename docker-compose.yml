@@ -1,0 +1,41 @@
+version: "3"
+
+services:
+  debts_redis:
+    container_name: debts_redis
+    restart: always
+    image: "redis:latest"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASS} --port ${REDIS_PORT}
+    volumes:
+      - ./container-data/redis-volume:/data
+    expose:
+      - "${REDIS_PORT}"
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+
+  debts_postgres:
+    container_name: debts_postgres
+    image: postgres:11
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - ./container-data/postgres:/var/lib/postgresql/data
+    command: postgres -p ${DB_PORT} -c 'shared_buffers=128MB' -c 'max_connections=200'
+
+  bot_app:
+    container_name: bot_app
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - debts_redis
+      - debts_postgres
+    build:
+      context: .
+    command: "python -u app.py"

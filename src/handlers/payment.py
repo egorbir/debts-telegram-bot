@@ -10,7 +10,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
     create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
-from ..data.config import BOT_NAME
+from ..data.credentials import BOT_NAME
 from ..utils.transferring_debts import add_payment, balances_to_transfers
 
 
