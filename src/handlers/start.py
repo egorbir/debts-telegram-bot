@@ -13,11 +13,16 @@ async def start(msg: types.Message):
     """
 
     if RDS.read_chat_debts_group_name(chat_id=msg.chat.id) is not None:
-        await msg.answer('Group is already in progress, you can only /newgroup to create a new one')
+        hello_message = 'Group is already in progress, you can only /newgroup to create a new one'
+        hello_message = 'Расчеты уже в процессе, можно только создать новую -  /newgroup'
+        await msg.answer(hello_message)
     else:
         hello_message = 'This is bot for counting group debts\nTo start counting enter short group name (ex. the ' \
                         'name of an event or the country/city of a trip etc.)\nBe careful, this name cannot be ' \
                         'edited, only create new'
+        hello_message = 'Этот бот помогает считать групповые долги\nЧтобы начать введите короткое имя новой группы ' \
+                        'долгов (например, по названию поездки или мероприятия)\nБудьте внимательны, это название' \
+                        'нельзя редактировать, только создать новую группу'
         await msg.answer(text=hello_message)
         await Register.waiting_for_group_name.set()
 
@@ -30,6 +35,8 @@ async def restart(msg: types.Message):
     old_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
     message = f'Old groups - {", ".join([g.replace("_", " ") for g in old_groups])}. Type exact name of the ' \
               f'group to restart it'
+    message = f'Старые группы - [{", ".join([g.replace("_", " ") for g in old_groups])}]. Введите точное название ' \
+              f'группы, что перезапустить ее'
     await msg.answer(text=message, reply_markup=create_cancel_keyboard())
     await Register.waiting_for_restart_group_name.set()
 
@@ -40,7 +47,9 @@ async def restart_group_name(msg: types.Message, state: FSMContext):
     """
 
     if msg.text.startswith('/') or BOT_NAME in msg.text:
-        await msg.answer('No commands, finish process first')
+        err_msg = 'No commands, finish process first'
+        err_msg = 'Не вводите команды, пока процесс не завершен'
+        await msg.answer(err_msg)
         return
     chat_id = str(msg.chat.id)
     group_name = msg.text.strip().replace(" ", "_")
@@ -54,9 +63,11 @@ async def restart_group_name(msg: types.Message, state: FSMContext):
             payments=old_payments
         )
         message = f'Group {group_name} restarted. Has {len(old_payments)} payments'
+        message = f'Группа {group_name} перезапущена. В ней {len(old_payments)} платежей'
         await state.finish()
     else:
         message = 'No such group retype EXACT name'
+        message = 'Группа не найдена, введите ТОЧНОЕ название'
     await msg.answer(text=message)
 
 
@@ -66,6 +77,7 @@ async def new_group(msg: types.Message):
     """
 
     msg_txt = 'Enter the name of new group. Be careful, all new payments will be saved to this new group.'
+    msg_txt = 'Введите имя новой группы. Будьте внимательны, все следующие платежи будут сохранены в эту новую группу.'
     await msg.answer(text=msg_txt, reply_markup=create_cancel_keyboard())
     await Register.waiting_for_group_name.set()
 
@@ -76,7 +88,9 @@ async def get_group_name(msg: types.Message, state: FSMContext):
     """
 
     if msg.text.startswith('/') or BOT_NAME in msg.text:
-        await msg.answer('No commands, finish process first')
+        err_msg = 'No commands, finish process first'
+        err_msg = 'Не вводите команды, пока процесс не завершен'
+        await msg.answer(err_msg)
         return
     chat_id = str(msg.chat.id)
     group_name = msg.text.strip().replace(' ', '_')
@@ -85,10 +99,14 @@ async def get_group_name(msg: types.Message, state: FSMContext):
         RDS.initialize_chat_redis(chat_id=msg.chat.id, group_name=group_name)
         user_registration_msg = 'Your group started! Now everyone who is in this group please tap the command /reg\n' \
                                 'To exit group use /unreg (you can exit only if there are no payments yet)'
+        user_registration_msg = 'Новая группа начата! Все, кто участвует в расчетах, используйте команду /reg\n' \
+                                'Выйти из группы - /unreg (только пока в группе нет платежей)'
         await msg.answer(user_registration_msg)
         await state.finish()
     else:
-        await msg.answer(text='Group with this name already exists. Type another name.')
+        message = 'Group with this name already exists. Type another name'
+        message = 'Группа с таким именем уже существует. Введите другое'
+        await msg.answer(text='.')
 
 
 async def register_user(msg: types.Message):
@@ -102,8 +120,10 @@ async def register_user(msg: types.Message):
     if username not in redis_balances:
         redis_balances[username] = 0
         message = f'Good, now you are in group - {username}'
+        message = f'Отлично, теперь ты у группе - {username}'
     else:
         message = 'Already in group'
+        message = 'Ты уже в группе'
     await msg.answer(text=message)
     RDS.write_chat_balances(chat_id=msg.chat.id, balances=redis_balances)
 
@@ -119,9 +139,11 @@ async def unregister_user(msg: types.Message):
     if len(RDS.read_chat_payments(chat_id=msg.chat.id)) == 0:
         balances.pop(username, None)
         result_msg = f'User {username} successfully deleted from group'
+        result_msg = f'Пользователь {username} удален из группы'
         RDS.write_chat_balances(chat_id=msg.chat.id, balances=balances)
     else:
         result_msg = 'There are already payments in this group, ypu cannot leave'
+        result_msg = 'В группе уже есть платежи, из нее нельзя выйти'
     await msg.answer(result_msg)
 
 

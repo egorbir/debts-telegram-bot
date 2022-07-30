@@ -27,8 +27,11 @@ async def register_payment(msg: Union[types.Message, types.CallbackQuery]):
     chat_id = msg.chat.id if isinstance(msg, types.Message) else msg.message.chat.id
     balances = RDS.read_chat_balances(chat_id=chat_id)
     if len(balances) < 3:
-        await msg.answer(f'Works with 3 or more people, now - {len(balances)}. '
-                         f'Use /reg command and check who is in group with /list')
+        message = f'Works with 3 or more people, now - {len(balances)}. ' \
+                  f'Use /reg command and check who is in group with /list'
+        message = f'Работает только с группами от 3 человек, сейчас - {len(balances)}. ' \
+                  f'Используйте команду /reg и проверьте, кто сейчас в группе командой /list'
+        await msg.answer(message)
         return
     message = 'Выбери, кто платил'
     payers_keyboard = create_payers_keyboard(balances=balances)
@@ -113,13 +116,16 @@ async def done_select_callback(call: types.CallbackQuery, state: FSMContext):
 
     user_state_data = await state.get_data()
     if len(user_state_data['debtors']) == 0:
-        await call.answer('No one chosen')
+        message = 'No one chosen'
+        message = 'Никто не выбран'
+        await call.answer(message)
     else:
         sum_message = 'Enter sum of payment:'
+        sum_message = 'Введите сумму платежа:'
         keyboard = InlineKeyboardMarkup().add(
             *[
-                InlineKeyboardButton(f'{EMOJIS["back"]} Back', callback_data=back_pay.new()),
-                InlineKeyboardButton(f'{EMOJIS["cancel"]} Cancel', callback_data='cancel')
+                InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data=back_pay.new()),
+                InlineKeyboardButton(f'{EMOJIS["cancel"]} Отменить', callback_data='cancel')
             ]
         )
         await call.message.edit_text(text=sum_message, reply_markup=keyboard)
@@ -141,9 +147,13 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
         payment_sum = round(float(msg.text.replace(',', '.')), ndigits=2)
         await state.update_data(payment_sum=payment_sum)
         await AddPayment.waiting_for_comment.set()
-        await msg.answer(text='Need a comment?', reply_markup=create_comment_keyboard())
+        message = 'Need a comment?'
+        message = 'Нужен комментарий?'
+        await msg.answer(text=message, reply_markup=create_comment_keyboard())
     else:
-        await msg.answer('Payment sum is not valid. Repeat:')
+        message = 'Payment sum is not valid. Repeat'
+        message = 'Невалидная сумма, введите еще раз'
+        await msg.answer(message)
 
 
 async def payment_comment_callback(call: types.CallbackQuery):
@@ -154,7 +164,9 @@ async def payment_comment_callback(call: types.CallbackQuery):
     :return: None
     """
 
-    await call.message.answer('Enter comment')
+    message = 'Enter comment'
+    message = 'Введите комментарий'
+    await call.message.answer(message)
     await call.bot.answer_callback_query(call.id)
 
 
@@ -170,7 +182,9 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
     comment_msg = call.message if isinstance(call, types.CallbackQuery) else call
 
     if comment_msg.text.startswith('/') or BOT_NAME in comment_msg.text:
-        await call.answer('No commands, finish process first')
+        message = 'No commands, finish process first'
+        message = 'Не вводите команды, пока не закончен процесс'
+        await call.answer(message)
         return
     user_state_data = await state.get_data()
     payment_comment = call.text if isinstance(call, types.Message) else ''
@@ -207,7 +221,9 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
         group_name=RDS.read_chat_debts_group_name(chat_id=chat_id),
         payment=user_state_data['final_payment']
     )
-    await call.message.answer('Payment added')
+    message = 'Payment added'
+    message = 'Платеж добавлен'
+    await call.message.answer(message)
     await call.answer()
     await state.finish()
 
@@ -225,9 +241,12 @@ async def end_counting(msg: types.Message, state: FSMContext):
     await state.update_data(transfers=transfers)
     if len(transfers) == 0:
         transfers_message = 'No money transfers needed'
+        transfers_message = 'Сейчас нет никаких долгов'
     else:
         transfers_message = 'To pay all debts:\n\n'
-    transfers_message += '\n\n'.join(f'{t["from"]} pays {t["payment"]} to {t["to"]}' for t in transfers)
+        transfers_message = 'Чтобы выплатить все долги:\n\n'
+    # transfers_message += '\n\n'.join(f'{t["from"]} pays {t["payment"]} to {t["to"]}' for t in transfers)
+    transfers_message += '\n\n'.join(f'{t["from"]} платит {t["payment"]} - {t["to"]}' for t in transfers)
     await msg.answer(text=transfers_message, reply_markup=create_debts_payments_confirmation_keyboard())
     await AddPayment.finish_all.set()
 
@@ -248,7 +267,9 @@ async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext)
             'comment': 'Debt payback',
             'date': datetime.datetime.now().strftime('%d.%m.%Y - %H:%M')
         }, chat_id=call.message.chat.id, redis=RDS)
-    await call.message.answer('All debts payed, payments written to history')
+    message = 'All debts payed, payments written to history'
+    message = 'Все долги выплачены, каждый перевод записан в историю'
+    await call.message.answer(message)
     await call.answer()
     await state.finish()
 

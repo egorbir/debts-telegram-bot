@@ -1,7 +1,6 @@
 FROM python:3.9-slim-buster
 RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y ffmpeg
+    apt-get upgrade -y
 
 RUN mkdir -p /app/
 COPY requirements.txt /app
