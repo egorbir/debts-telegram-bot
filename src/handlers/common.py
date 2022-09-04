@@ -40,16 +40,6 @@ async def list_users(msg: types.Message):
     await msg.answer(result_message_text)
 
 
-async def get_help(msg: types.Message):
-    """
-    Prints help message
-    """
-
-    help_message = 'This later will be a long help message about this bot'
-    help_message = 'Сообщение со справкой'
-    await msg.answer(text=help_message)
-
-
 async def cancel_command(msg: types.Message, state: FSMContext):
     """
     Cancels any action that is in progress and finishes FSM state
@@ -76,7 +66,6 @@ async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
 def register_common_handlers(dp: Dispatcher):
     dp.register_message_handler(status, commands='status')
     dp.register_message_handler(list_users, commands='list')
-    dp.register_message_handler(get_help, commands='help')
     dp.register_message_handler(cancel_command, commands='cancel', state='*')
 
     dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')

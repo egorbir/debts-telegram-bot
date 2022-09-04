@@ -6,7 +6,7 @@ from aiogram.utils import executor
 
 from src.data.credentials import BOT_TOKEN, REDIS_HOST, REDIS_PASS, REDIS_PORT
 from src.handlers import register_common_handlers, register_payment_handlers, register_start_handlers, \
-    register_statistics_handlers
+    register_statistics_handlers, register_help_handlers
 from src.utils.set_bot_commands import set_bot_commands
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ async def startup(dispatcher: Dispatcher):
     register_payment_handlers(dp=dispatcher)
     register_common_handlers(dp=dispatcher)
     register_statistics_handlers(dp=dispatcher)
+    register_help_handlers(dp=dispatcher)
 
 
 async def shutdown(dispatcher: Dispatcher):

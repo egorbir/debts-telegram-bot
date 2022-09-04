@@ -8,7 +8,9 @@ EMOJIS = {
     'all': '\u2714',
     'cancel': '\u274C',
     'done': '\u2705',
-    'checkbox': '\u2611'
+    'checkbox': '\u2611',
+    'forward': '\u25B6',
+    'backward': '\u25C0'
 }
 
 
