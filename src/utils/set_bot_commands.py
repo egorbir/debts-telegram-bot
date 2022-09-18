@@ -1,9 +1,10 @@
 from aiogram import types, Dispatcher
+from aiogram.types import BotCommandScopeAllGroupChats
 
 
-async def set_bot_commands(dp: Dispatcher):
+async def set_bot_group_commands(dp: Dispatcher):
     await dp.bot.set_my_commands(
-        [
+        commands=[
             types.BotCommand('start', 'Запустить бота'),
             types.BotCommand('newgroup', 'Начать новую группу'),
             types.BotCommand('restart', 'Перезапустить старую группу'),
@@ -17,5 +18,16 @@ async def set_bot_commands(dp: Dispatcher):
             types.BotCommand('cancel', 'Отмена'),
             types.BotCommand('end', 'Закончить и рассчитать все транзакции'),
             types.BotCommand('help', 'Справка'),
+        ],
+        scope=BotCommandScopeAllGroupChats()
+    )
+
+
+async def set_bot_commands(dp: Dispatcher):
+    await dp.bot.set_my_commands(
+        commands=[
+            types.BotCommand('start', 'Запуск'),
+            types.BotCommand('help', 'Справка'),
+            types.BotCommand('feedback', 'Отзыв')
         ]
     )

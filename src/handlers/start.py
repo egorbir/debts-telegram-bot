@@ -12,19 +12,23 @@ async def start(msg: types.Message):
     Start command. Works only if there is no current debts group in progress
     """
 
-    if RDS.read_chat_debts_group_name(chat_id=msg.chat.id) is not None:
-        hello_message = 'Group is already in progress, you can only /newgroup to create a new one'
-        hello_message = 'Расчеты уже в процессе, можно только создать новую -  /newgroup'
-        await msg.answer(hello_message)
-    else:
-        hello_message = 'This is bot for counting group debts\nTo start counting enter short group name (ex. the ' \
-                        'name of an event or the country/city of a trip etc.)\nBe careful, this name cannot be ' \
-                        'edited, only create new'
-        hello_message = 'Этот бот помогает считать групповые долги\nЧтобы начать введите короткое имя новой группы ' \
-                        'долгов (например, по названию поездки или мероприятия)\nБудьте внимательны, это название' \
-                        'нельзя редактировать, только создать новую группу'
-        await msg.answer(text=hello_message)
-        await Register.waiting_for_group_name.set()
+    if msg.chat.type == types.ChatType.GROUP:
+        if RDS.read_chat_debts_group_name(chat_id=msg.chat.id) is not None:
+            hello_message = 'Group is already in progress, you can only /newgroup to create a new one'
+            hello_message = 'Расчеты уже в процессе, можно только создать новую -  /newgroup'
+            await msg.answer(hello_message)
+        else:
+            hello_message = 'This is bot for counting group debts\nTo start counting enter short group name (ex. the ' \
+                            'name of an event or the country/city of a trip etc.)\nBe careful, this name cannot be ' \
+                            'edited, only create new'
+            hello_message = 'Этот бот помогает считать групповые долги\nЧтобы начать введите короткое имя новой группы ' \
+                            'долгов (например, по названию поездки или мероприятия)\nБудьте внимательны, это название' \
+                            'нельзя редактировать, только создать новую группу'
+            await msg.answer(text=hello_message)
+            await Register.waiting_for_group_name.set()
+    elif msg.chat.type == types.ChatType.PRIVATE:
+        await msg.answer('Привет! Этот бот предназначен для использования в группе с несколькими людьми.\n'
+                         'Вызови справку командой /help или оставь свой отзыв командой /feedback')
 
 
 async def restart(msg: types.Message):
@@ -149,9 +153,14 @@ async def unregister_user(msg: types.Message):
 
 def register_start_handlers(dp: Dispatcher):
     dp.register_message_handler(start, commands='start')
-    dp.register_message_handler(new_group, commands='newgroup')
-    dp.register_message_handler(restart, commands='restart')
-    dp.register_message_handler(restart_group_name, state=Register.waiting_for_restart_group_name)
-    dp.register_message_handler(get_group_name, state=Register.waiting_for_group_name)
-    dp.register_message_handler(register_user, commands='reg')
-    dp.register_message_handler(unregister_user, commands='unreg')
+
+    dp.register_message_handler(new_group, commands='newgroup', chat_type=types.ChatType.GROUP)
+    dp.register_message_handler(restart, commands='restart', chat_type=types.ChatType.GROUP)
+
+    dp.register_message_handler(
+        restart_group_name, state=Register.waiting_for_restart_group_name, chat_type=types.ChatType.GROUP
+    )
+    dp.register_message_handler(get_group_name, state=Register.waiting_for_group_name, chat_type=types.ChatType.GROUP)
+
+    dp.register_message_handler(register_user, commands='reg', chat_type=types.ChatType.GROUP)
+    dp.register_message_handler(unregister_user, commands='unreg', chat_type=types.ChatType.GROUP)

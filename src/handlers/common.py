@@ -64,8 +64,8 @@ async def cancel_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 def register_common_handlers(dp: Dispatcher):
-    dp.register_message_handler(status, commands='status')
-    dp.register_message_handler(list_users, commands='list')
-    dp.register_message_handler(cancel_command, commands='cancel', state='*')
+    dp.register_message_handler(status, commands='status', chat_type=types.ChatType.GROUP)
+    dp.register_message_handler(list_users, commands='list', chat_type=types.ChatType.GROUP)
+    dp.register_message_handler(cancel_command, commands='cancel', chat_type=types.ChatType.GROUP, state='*')
 
-    dp.register_callback_query_handler(cancel_callback, Text('cancel'), state='*')
+    dp.register_callback_query_handler(cancel_callback, Text('cancel'), chat_type=types.ChatType.GROUP, state='*')

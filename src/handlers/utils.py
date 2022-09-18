@@ -14,6 +14,11 @@ EMOJIS = {
 }
 
 
+# def timeout_decorator(handler_func):
+#     def wrapper(*args, **kwargs):
+#         handler_func(*args, **kwargs)
+
+
 def create_payers_keyboard(balances: dict):
     """
     Create keyboard with users for choosing payer

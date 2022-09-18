@@ -276,29 +276,58 @@ async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext)
 
 def register_payment_handlers(dp: Dispatcher):
     # Commands handlers
-    dp.register_message_handler(register_payment, commands='pay')
-    dp.register_message_handler(end_counting, commands='end')
+    dp.register_message_handler(register_payment, chat_type=types.ChatType.GROUP, commands='pay')
+    dp.register_message_handler(end_counting, chat_type=types.ChatType.GROUP, commands='end')
 
     # Text messages handlers
-    dp.register_message_handler(get_payment_sum, state=AddPayment.waiting_for_sum)
-    dp.register_message_handler(comment_and_finish, state=AddPayment.waiting_for_comment)
+    dp.register_message_handler(get_payment_sum, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_sum)
+    dp.register_message_handler(comment_and_finish, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment)
 
     # Return to payer choosing callback
-    dp.register_callback_query_handler(register_payment, Text('back'), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(
+        register_payment, Text('back'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
+    )
+
     # DEBTORS direct callback and back button callback to return
-    dp.register_callback_query_handler(payer_select_callback, payer_cb.filter(), state=AddPayment.waiting_for_payer)
-    dp.register_callback_query_handler(payer_select_callback, back_pay.filter(), state=AddPayment.waiting_for_sum)
+    dp.register_callback_query_handler(
+        payer_select_callback, payer_cb.filter(), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_payer
+    )
+    dp.register_callback_query_handler(
+        payer_select_callback, back_pay.filter(), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_sum
+    )
+
     # Single or all debtors choosing callback
-    dp.register_callback_query_handler(get_debtors_callback, debtor_cb.filter(), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(get_debtors_callback, all_cb.filter(), state=AddPayment.waiting_for_debtors)
+    dp.register_callback_query_handler(
+        get_debtors_callback, debtor_cb.filter(), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
+    )
+    dp.register_callback_query_handler(
+        get_debtors_callback, all_cb.filter(), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
+    )
+
     # Finish debtors choose, go to payment sum input
-    dp.register_callback_query_handler(done_select_callback, Text('done_debtors'), state=AddPayment.waiting_for_debtors)
-    dp.register_callback_query_handler(done_select_callback, Text('back_sum'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(
+        done_select_callback, Text('done_debtors'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
+    )
+    dp.register_callback_query_handler(
+        done_select_callback, Text('back_sum'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment
+    )
+
     # Payment input
-    dp.register_callback_query_handler(payment_comment_callback, Text('comment'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(
+        payment_comment_callback, Text('comment'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment
+    )
+
     # Comments callback
-    dp.register_callback_query_handler(comment_and_finish, Text('finish'), state=AddPayment.waiting_for_comment)
+    dp.register_callback_query_handler(
+        comment_and_finish, Text('finish'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment
+    )
+
     # Confirmation callback
-    dp.register_callback_query_handler(confirm_payment, Text('confirm'), state=AddPayment.waiting_for_confirm)
+    dp.register_callback_query_handler(
+        confirm_payment, Text('confirm'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_confirm
+    )
+
     # All debts payback callback
-    dp.register_callback_query_handler(all_debts_payed_callback, Text('payed_all'), state=AddPayment.finish_all)
+    dp.register_callback_query_handler(
+        all_debts_payed_callback, Text('payed_all'), chat_type=types.ChatType.GROUP, state=AddPayment.finish_all
+    )

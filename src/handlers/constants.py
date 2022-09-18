@@ -40,3 +40,8 @@ class AddPayment(StatesGroup):
     waiting_for_comment = State()
     waiting_for_confirm = State()
     finish_all = State()
+
+
+# States to use in user chat for feedback
+class Feedback(StatesGroup):
+    waiting_for_feedback_message = State()
