@@ -9,17 +9,19 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
-    create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
+    create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors, timeout
 from ..data.credentials import BOT_NAME
 from ..utils.transferring_debts import add_payment, balances_to_transfers
 
 
-async def register_payment(msg: Union[types.Message, types.CallbackQuery]):
+@timeout(state_to_cancel='AddPayment:waiting_for_payer')
+async def register_payment(msg: Union[types.Message, types.CallbackQuery], state: FSMContext):
     """
     Base start of payment add handler.
     Start of add - command '/pay', come back from payer - callback 'back'
 
     :param msg: either Message or Callback
+    :param state: FSMContext
     :return: None
     """
 
@@ -46,26 +48,27 @@ async def register_payment(msg: Union[types.Message, types.CallbackQuery]):
     await AddPayment.waiting_for_payer.set()
 
 
-async def payer_select_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+@timeout(state_to_cancel='AddPayment:waiting_for_debtors')
+async def payer_select_callback(msg: types.CallbackQuery, state: FSMContext, callback_data: dict):
     """
     Callback after payer choose.
     First - save selected payer to user storage. Second - render interface for debtors choose
 
-    :param call: Callback
+    :param msg: Callback
     :param callback_data: Callback data
     :param state: redis state
     :return: None
     """
 
     # Save selected payer to storage
-    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
+    balances = RDS.read_chat_balances(chat_id=msg.message.chat.id)
     await state.update_data(debtors=list())
     if 'payer' in callback_data:
         await state.update_data(payer=callback_data['payer'])
 
     # Start next step rendering
     message = 'Выбери, за кого платил'
-    await call.message.edit_text(
+    await msg.message.edit_text(
         text=message,
         reply_markup=create_debtors_keyboard(
             balances=balances,
@@ -75,18 +78,18 @@ async def payer_select_callback(call: types.CallbackQuery, callback_data: dict, 
     await AddPayment.waiting_for_debtors.set()
 
 
-async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def get_debtors_callback(msg: types.CallbackQuery, callback_data: dict, state: FSMContext):
     """
     Callback for debtors choose. Render who are chosen or not. Save chosen to storage
     Starts on: 1 - initial render, 2 - single debtor change, 3 - select all debtors
 
-    :param call: Callback
+    :param msg: Callback
     :param callback_data: Callback data
     :param state: redis state
     :return: None
     """
 
-    balances = RDS.read_chat_balances(chat_id=call.message.chat.id)
+    balances = RDS.read_chat_balances(chat_id=msg.message.chat.id)
     user_state_data = await state.get_data()
     user_state_data['debtors'] = edit_user_state_for_debtors(
         debtors_state=user_state_data['debtors'],
@@ -95,7 +98,7 @@ async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, s
     )
     message = 'Выбери, за кого платил'
     await state.update_data(debtors=user_state_data['debtors'])
-    await call.message.edit_text(
+    await msg.message.edit_text(
         text=message,
         reply_markup=create_debtors_keyboard(
             balances=balances,
@@ -104,12 +107,13 @@ async def get_debtors_callback(call: types.CallbackQuery, callback_data: dict, s
     )
 
 
-async def done_select_callback(call: types.CallbackQuery, state: FSMContext):
+@timeout(state_to_cancel='AddPayment:waiting_for_sum')
+async def done_select_callback(msg: types.CallbackQuery, state: FSMContext):
     """
     Callback on done button after all debtors are chosen.
     Render interface for payment sum enter
 
-    :param call: Callback
+    :param msg: Callback
     :param state: redis state
     :return: None
     """
@@ -118,7 +122,7 @@ async def done_select_callback(call: types.CallbackQuery, state: FSMContext):
     if len(user_state_data['debtors']) == 0:
         message = 'No one chosen'
         message = 'Никто не выбран'
-        await call.answer(message)
+        await msg.answer(message)
     else:
         sum_message = 'Enter sum of payment:'
         sum_message = 'Введите сумму платежа:'
@@ -128,10 +132,11 @@ async def done_select_callback(call: types.CallbackQuery, state: FSMContext):
                 InlineKeyboardButton(f'{EMOJIS["cancel"]} Отменить', callback_data='cancel')
             ]
         )
-        await call.message.edit_text(text=sum_message, reply_markup=keyboard)
+        await msg.message.edit_text(text=sum_message, reply_markup=keyboard)
         await AddPayment.waiting_for_sum.set()
 
 
+@timeout(state_to_cancel='AddPayment:waiting_for_comment')
 async def get_payment_sum(msg: types.Message, state: FSMContext):
     """
     Recognize payment sum, save to storage. Render interface for comment input
@@ -156,38 +161,39 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
         await msg.answer(message)
 
 
-async def payment_comment_callback(call: types.CallbackQuery):
+async def payment_comment_callback(msg: types.CallbackQuery):
     """
     Enter comment for payment
 
-    :param call: Callback
+    :param msg: Callback
     :return: None
     """
 
     message = 'Enter comment'
     message = 'Введите комментарий'
-    await call.message.answer(message)
-    await call.bot.answer_callback_query(call.id)
+    await msg.message.answer(message)
+    await msg.bot.answer_callback_query(msg.id)
 
 
-async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], state: FSMContext):
+@timeout(state_to_cancel='AddPayment:waiting_for_confirm')
+async def comment_and_finish(msg: Union[types.Message, types.CallbackQuery], state: FSMContext):
     """
     Add comment to payment and save payment to storage. Render interface for confirmation
 
-    :param call: Message or Callback
+    :param msg: Message or Callback
     :param state: redis storage
     :return: None
     """
 
-    comment_msg = call.message if isinstance(call, types.CallbackQuery) else call
+    comment_msg = msg.message if isinstance(msg, types.CallbackQuery) else msg
 
     if comment_msg.text.startswith('/') or BOT_NAME in comment_msg.text:
         message = 'No commands, finish process first'
         message = 'Не вводите команды, пока не закончен процесс'
-        await call.answer(message)
+        await msg.answer(message)
         return
     user_state_data = await state.get_data()
-    payment_comment = call.text if isinstance(call, types.Message) else ''
+    payment_comment = msg.text if isinstance(msg, types.Message) else ''
     payment = {
         'payer': user_state_data['payer'],
         'sum': user_state_data['payment_sum'],
@@ -197,25 +203,25 @@ async def comment_and_finish(call: Union[types.Message, types.CallbackQuery], st
     }
     await state.update_data(final_payment=payment)
     msg_txt, keyboard = create_confirmation_keyboard(payment=payment)
-    if isinstance(call, types.Message):
-        await call.answer(text=msg_txt, reply_markup=keyboard)
+    if isinstance(msg, types.Message):
+        await msg.answer(text=msg_txt, reply_markup=keyboard)
     else:
-        await call.message.edit_text(text=msg_txt, reply_markup=keyboard)
+        await msg.message.edit_text(text=msg_txt, reply_markup=keyboard)
     await AddPayment.waiting_for_confirm.set()
 
 
-async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
+async def confirm_payment(msg: types.CallbackQuery, state: FSMContext):
     """
     After payment confirmation save it to Redis and DB. Clear temp storage.
 
-    :param call: Callback
+    :param msg: Callback
     :param state: redis storage
     :return: None
     """
 
-    chat_id = str(call.message.chat.id)
+    chat_id = str(msg.message.chat.id)
     user_state_data = await state.get_data()
-    add_payment(payment=user_state_data['final_payment'], chat_id=call.message.chat.id, redis=RDS)
+    add_payment(payment=user_state_data['final_payment'], chat_id=msg.message.chat.id, redis=RDS)
     DB.add_chat_group_payment(
         chat_id=chat_id,
         group_name=RDS.read_chat_debts_group_name(chat_id=chat_id),
@@ -223,11 +229,12 @@ async def confirm_payment(call: types.CallbackQuery, state: FSMContext):
     )
     message = 'Payment added'
     message = 'Платеж добавлен'
-    await call.message.answer(message)
-    await call.answer()
+    await msg.message.answer(message)
+    await msg.answer()
     await state.finish()
 
 
+@timeout(state_to_cancel='AddPayment:finish_all')
 async def end_counting(msg: types.Message, state: FSMContext):
     """
     Finish all payments, transform all balances to money transfers. Add keyboard with cancel and pay buttons -
@@ -251,10 +258,10 @@ async def end_counting(msg: types.Message, state: FSMContext):
     await AddPayment.finish_all.set()
 
 
-async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext):
+async def all_debts_payed_callback(msg: types.CallbackQuery, state: FSMContext):
     """
     If user chose pay all - add every transfer to DB as a single payment (balances - zero)
-    :param call: Callback
+    :param msg: Callback
     :param state: redis storage
     """
 
@@ -266,11 +273,11 @@ async def all_debts_payed_callback(call: types.CallbackQuery, state: FSMContext)
             'debtors': [transfer['to']],
             'comment': 'Debt payback',
             'date': datetime.datetime.now().strftime('%d.%m.%Y - %H:%M')
-        }, chat_id=call.message.chat.id, redis=RDS)
+        }, chat_id=msg.message.chat.id, redis=RDS)
     message = 'All debts payed, payments written to history'
     message = 'Все долги выплачены, каждый перевод записан в историю'
-    await call.message.answer(message)
-    await call.answer()
+    await msg.message.answer(message)
+    await msg.answer()
     await state.finish()
 
 

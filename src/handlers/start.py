@@ -3,11 +3,12 @@ from aiogram.dispatcher import FSMContext
 
 from src.data.credentials import BOT_NAME
 from src.handlers.constants import DB, RDS, Register
-from src.handlers.utils import create_cancel_keyboard
+from src.handlers.utils import create_cancel_keyboard, timeout
 from src.utils.transferring_debts import payments_to_balances
 
 
-async def start(msg: types.Message):
+@timeout(state_to_cancel='Register:waiting_for_group_name')
+async def start(msg: types.Message, state: FSMContext):
     """
     Start command. Works only if there is no current debts group in progress
     """
@@ -31,7 +32,8 @@ async def start(msg: types.Message):
                          'Вызови справку командой /help или оставь свой отзыв командой /feedback')
 
 
-async def restart(msg: types.Message):
+@timeout(state_to_cancel='Register:waiting_for_restart_group_name')
+async def restart(msg: types.Message, state: FSMContext):
     """
     Restart old debts group by its name. Gets all saved in database groups, print and waits for name input
     """
@@ -75,7 +77,8 @@ async def restart_group_name(msg: types.Message, state: FSMContext):
     await msg.answer(text=message)
 
 
-async def new_group(msg: types.Message):
+@timeout(state_to_cancel='Register:waiting_for_group_name')
+async def new_group(msg: types.Message, state: FSMContext):
     """
     Create and start new debts group. Waits for new group name input
     """

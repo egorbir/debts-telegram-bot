@@ -1,4 +1,8 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import asyncio
+from typing import Optional, Union
+
+from aiogram import types
+from aiogram.dispatcher import FSMContext
 
 from src.handlers.constants import all_cb, debtor_cb, payer_cb
 
@@ -14,9 +18,27 @@ EMOJIS = {
 }
 
 
-# def timeout_decorator(handler_func):
-#     def wrapper(*args, **kwargs):
-#         handler_func(*args, **kwargs)
+def timeout(state_to_cancel: str):
+    def timeout_inner_decorator(handler_func):
+        async def wrapper(
+                msg: Union[types.Message, types.CallbackQuery],
+                state: FSMContext,
+                callback_data: Optional[dict] = None
+        ):
+            timeout_message = 'Время ожидания ответа превышено. Начните операцию заново с выполнения той же команды'
+            if callback_data is not None:
+                await handler_func(msg, state, callback_data)
+            else:
+                await handler_func(msg, state)
+            await asyncio.sleep(300)
+            if await state.get_state() == state_to_cancel:
+                if isinstance(msg, types.Message):
+                    await msg.reply(timeout_message)
+                elif isinstance(msg, types.CallbackQuery):
+                    await msg.message.reply(timeout_message)
+                await state.finish()
+        return wrapper
+    return timeout_inner_decorator
 
 
 def create_payers_keyboard(balances: dict):
@@ -26,11 +48,11 @@ def create_payers_keyboard(balances: dict):
 
     buttons = list()
     for user in balances:
-        buttons.append(InlineKeyboardButton(
+        buttons.append(types.InlineKeyboardButton(
             user,
             callback_data=payer_cb.new(payer=user)
         ))
-    return InlineKeyboardMarkup().add(*buttons)
+    return types.InlineKeyboardMarkup().add(*buttons)
 
 
 def create_debtors_keyboard(balances: dict, selected_debtors: list):
@@ -45,15 +67,15 @@ def create_debtors_keyboard(balances: dict, selected_debtors: list):
         else:
             btn_txt = user
         user_buttons.append(
-            InlineKeyboardButton(btn_txt, callback_data=debtor_cb.new(debtor=user))
+            types.InlineKeyboardButton(btn_txt, callback_data=debtor_cb.new(debtor=user))
         )
     tech_buttons = [
-        InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data='back'),
-        InlineKeyboardButton(f'{EMOJIS["all"]} Все', callback_data=all_cb.new(all='all')),
-        InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel'),
-        InlineKeyboardButton(f'{EMOJIS["done"]} Готово', callback_data='done_debtors')
+        types.InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data='back'),
+        types.InlineKeyboardButton(f'{EMOJIS["all"]} Все', callback_data=all_cb.new(all='all')),
+        types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel'),
+        types.InlineKeyboardButton(f'{EMOJIS["done"]} Готово', callback_data='done_debtors')
     ]
-    keyboard = InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
+    keyboard = types.InlineKeyboardMarkup(row_width=len(user_buttons)).add(*user_buttons)
     keyboard.row(*tech_buttons)
     return keyboard
 
@@ -64,13 +86,13 @@ def create_comment_keyboard():
     """
 
     buttons = [
-        InlineKeyboardButton('Yes', callback_data='comment'),
-        InlineKeyboardButton('No', callback_data='finish')
+        types.InlineKeyboardButton('Yes', callback_data='comment'),
+        types.InlineKeyboardButton('No', callback_data='finish')
     ]
-    keyboard = InlineKeyboardMarkup().add(*buttons)
+    keyboard = types.InlineKeyboardMarkup().add(*buttons)
     tech_buttons = [
-        InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data='back_sum'),
-        InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
+        types.InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data='back_sum'),
+        types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
     ]
     keyboard.row(*tech_buttons)
     return keyboard
@@ -82,10 +104,10 @@ def create_debts_payments_confirmation_keyboard():
     """
 
     transfers_buttons = [
-        InlineKeyboardButton(f'{EMOJIS["done"]} Все долги выплачены!', callback_data='payed_all'),
-        InlineKeyboardButton(f'{EMOJIS["back"]} Отменить и продолжить', callback_data='cancel')
+        types.InlineKeyboardButton(f'{EMOJIS["done"]} Все долги выплачены!', callback_data='payed_all'),
+        types.InlineKeyboardButton(f'{EMOJIS["back"]} Отменить и продолжить', callback_data='cancel')
     ]
-    return InlineKeyboardMarkup().add(*transfers_buttons)
+    return types.InlineKeyboardMarkup().add(*transfers_buttons)
 
 
 def create_confirmation_keyboard(payment: dict):
@@ -98,10 +120,10 @@ def create_confirmation_keyboard(payment: dict):
     message_txt = f'Платеж:\n\n{payment["payer"]} заплатил за {", ".join(payment["debtors"])}\n\n' \
                   f'Сумма: {payment["sum"]}\n\nКомментарий: {payment["comment"]}'
     buttons = [
-        InlineKeyboardButton(f'{EMOJIS["done"]} Подтвердить', callback_data='confirm'),
-        InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
+        types.InlineKeyboardButton(f'{EMOJIS["done"]} Подтвердить', callback_data='confirm'),
+        types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
     ]
-    keyboard = InlineKeyboardMarkup().add(*buttons)
+    keyboard = types.InlineKeyboardMarkup().add(*buttons)
     return message_txt, keyboard
 
 
@@ -110,8 +132,8 @@ def create_cancel_keyboard():
     Create keyboard to cancel any action
     """
 
-    cancel_btn = InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
-    return InlineKeyboardMarkup().add(cancel_btn)
+    cancel_btn = types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
+    return types.InlineKeyboardMarkup().add(cancel_btn)
 
 
 def edit_user_state_for_debtors(debtors_state: list, callback_data: dict, balances_users: list):
