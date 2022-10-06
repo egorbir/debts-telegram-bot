@@ -4,7 +4,7 @@ from typing import Optional, Union
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 
-from src.handlers.constants import all_cb, debtor_cb, payer_cb
+from src.handlers.constants import all_cb, debtor_cb, delete_cb, payer_cb
 
 # Map of emojis used in buttons
 EMOJIS = {
@@ -80,24 +80,6 @@ def create_debtors_keyboard(balances: dict, selected_debtors: list):
     return keyboard
 
 
-def create_comment_keyboard():
-    """
-    Create keyboard to choose if you need comment or not
-    """
-
-    buttons = [
-        types.InlineKeyboardButton('Yes', callback_data='comment'),
-        types.InlineKeyboardButton('No', callback_data='finish')
-    ]
-    keyboard = types.InlineKeyboardMarkup().add(*buttons)
-    tech_buttons = [
-        types.InlineKeyboardButton(f'{EMOJIS["back"]} Назад', callback_data='back_sum'),
-        types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
-    ]
-    keyboard.row(*tech_buttons)
-    return keyboard
-
-
 def create_debts_payments_confirmation_keyboard():
     """
     Create keyboard to confirm debts payback when all calculations finished
@@ -134,6 +116,15 @@ def create_cancel_keyboard():
 
     cancel_btn = types.InlineKeyboardButton(f'{EMOJIS["cancel"]} Отмена', callback_data='cancel')
     return types.InlineKeyboardMarkup().add(cancel_btn)
+
+
+def create_found_payments_keyboard(found_payments: list[dict]):
+    payments_buttons = [
+        types.InlineKeyboardButton(str(i+1), callback_data=delete_cb.new(payment=payment['id'])) for i, payment in
+        enumerate(found_payments)
+    ]
+    keyboard = types.InlineKeyboardMarkup().add(*payments_buttons)
+    return keyboard
 
 
 def edit_user_state_for_debtors(debtors_state: list, callback_data: dict, balances_users: list):

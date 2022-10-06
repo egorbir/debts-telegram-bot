@@ -22,6 +22,15 @@ def add_payment(payment: dict, chat_id: str, redis: RedisInterface):
     redis.add_payment(chat_id=chat_id, payment=payment)
 
 
+def delete_payment(payment: dict, chat_id: str, redis: RedisInterface):
+
+    redis.decrease_chat_user_balance(chat_id=chat_id, user=payment['payer'], decrease_sum=payment['sum'])
+    shared_payment = round(payment['sum'] / len(payment['debtors']), ndigits=2)
+    for debtor in payment['debtors']:
+        redis.increase_chat_user_balance(chat_id=chat_id, user=debtor, increase_sum=shared_payment)
+    redis.delete_payment(chat_id=chat_id, payment_id=payment['id'])
+
+
 def normalize_balances(balances: dict):
     """
     Normalize all balances in order to equal their sum to 0

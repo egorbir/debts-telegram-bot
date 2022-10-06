@@ -12,6 +12,7 @@ async def set_bot_group_commands(dp: Dispatcher):
             types.BotCommand('unreg', 'Войти в группу'),
             types.BotCommand('list', 'Список участников группы'),
             types.BotCommand('pay', 'Добавить новый платеж'),
+            types.BotCommand('delete', 'Удалить платеж'),
             types.BotCommand('status', 'Текущий статус вычислений'),
             types.BotCommand('stats', 'Статистика группы'),
             types.BotCommand('history', 'История платежей'),

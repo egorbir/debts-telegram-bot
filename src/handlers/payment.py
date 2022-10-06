@@ -1,5 +1,6 @@
 import datetime
 import re
+import uuid
 from typing import Union
 
 from aiogram import Dispatcher, types
@@ -8,7 +9,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
-from .utils import EMOJIS, create_comment_keyboard, create_confirmation_keyboard, create_debtors_keyboard, \
+from .utils import EMOJIS, create_confirmation_keyboard, create_debtors_keyboard, \
     create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors, timeout
 from ..data.credentials import BOT_NAME
 from ..utils.transferring_debts import add_payment, balances_to_transfers
@@ -36,10 +37,9 @@ async def register_payment(msg: Union[types.Message, types.CallbackQuery], state
         await msg.answer(message)
         return
     message = 'Выбери, кто платил'
-    payers_keyboard = create_payers_keyboard(balances=balances)
     if isinstance(msg, types.Message):
         await msg.answer(
-            reply_markup=payers_keyboard, text=message
+            reply_markup=create_payers_keyboard(balances=balances), text=message
         )
     else:
         await msg.message.edit_text(
@@ -152,27 +152,13 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
         payment_sum = round(float(msg.text.replace(',', '.')), ndigits=2)
         await state.update_data(payment_sum=payment_sum)
         await AddPayment.waiting_for_comment.set()
-        message = 'Need a comment?'
-        message = 'Нужен комментарий?'
-        await msg.answer(text=message, reply_markup=create_comment_keyboard())
+        message = 'Enter comment'
+        message = 'Введите комментарий'
+        await msg.answer(text=message)
     else:
         message = 'Payment sum is not valid. Repeat'
         message = 'Невалидная сумма, введите еще раз'
         await msg.answer(message)
-
-
-async def payment_comment_callback(msg: types.CallbackQuery):
-    """
-    Enter comment for payment
-
-    :param msg: Callback
-    :return: None
-    """
-
-    message = 'Enter comment'
-    message = 'Введите комментарий'
-    await msg.message.answer(message)
-    await msg.bot.answer_callback_query(msg.id)
 
 
 @timeout(state_to_cancel='AddPayment:waiting_for_confirm')
@@ -195,6 +181,7 @@ async def comment_and_finish(msg: Union[types.Message, types.CallbackQuery], sta
     user_state_data = await state.get_data()
     payment_comment = msg.text if isinstance(msg, types.Message) else ''
     payment = {
+        'id': str(uuid.uuid4()),
         'payer': user_state_data['payer'],
         'sum': user_state_data['payment_sum'],
         'debtors': user_state_data['debtors'],
@@ -317,11 +304,6 @@ def register_payment_handlers(dp: Dispatcher):
     )
     dp.register_callback_query_handler(
         done_select_callback, Text('back_sum'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment
-    )
-
-    # Payment input
-    dp.register_callback_query_handler(
-        payment_comment_callback, Text('comment'), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment
     )
 
     # Comments callback

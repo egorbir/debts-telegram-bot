@@ -22,6 +22,7 @@ RDS = RedisInterface(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS)
 payer_cb = CallbackData('payer', 'payer')
 debtor_cb = CallbackData('debtor', 'debtor')
 all_cb = CallbackData('all', 'all')
+delete_cb = CallbackData('payment', 'payment')
 back_pay = CallbackData('back_payers')
 
 
@@ -40,6 +41,14 @@ class AddPayment(StatesGroup):
     waiting_for_comment = State()
     waiting_for_confirm = State()
     finish_all = State()
+
+
+class DeletePayment(StatesGroup):
+    waiting_for_history_choose = State()
+    waiting_for_comment = State()
+    waiting_for_search_restart = State()
+    waiting_choose_number = State()
+    waiting_for_confirm = State()
 
 
 # States to use in user chat for feedback

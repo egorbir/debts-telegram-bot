@@ -43,14 +43,10 @@ async def list_payments(msg: types.Message):
         # reply_msg_template = 'History of payments:\n'
         reply_msg_template = 'История платежей:\n'
         for payment in payments:
-            # reply_msg_template += f'\nPayment:\n\n{payment["payer"]} payed for {", ".join(payment["debtors"])}\n' \
-            #                       f'Sum: {payment["sum"]}\nDate: {payment["date"]}'
             reply_msg_template += f'\nПлатеж:\n\n{payment["payer"]} заплатил за {", ".join(payment["debtors"])}\n' \
-                                  f'Сумма: {payment["sum"]}\nДата: {payment["date"]}'
-            if payment['comment'] != '':
-                # reply_msg_template += f'\nComment: {payment["comment"]}'
-                reply_msg_template += f'\nКомментарий: {payment["comment"]}'
-            reply_msg_template += '\n_________________________________\n'
+                                  f'Сумма: {payment["sum"]}\nДата: {payment["date"]}' \
+                                  f'\nКомментарий: {payment["comment"]}' \
+                                  f'\n_________________________________\n'
         await msg.answer(reply_msg_template)
 
 

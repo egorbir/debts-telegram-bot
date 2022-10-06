@@ -75,9 +75,28 @@ class RedisInterface:
 
         self.rds.hset(chat_id, mapping={'payments': json.dumps(payments)})
 
+    def get_payment(self, chat_id: str, payment_id: str):
+        """
+        Get payment by it's id, if not found return None
+        :param chat_id: telegram chat id where bot is working
+        :param payment_id: payment uuid
+        :return: Optional payment dict
+        """
+
+        payments = self.read_chat_payments(chat_id=chat_id)
+        return next((payment for payment in payments if payment['id'] == payment_id), None)
+
     def add_payment(self, chat_id: str, payment: dict):
         payments = self.read_chat_payments(chat_id=chat_id)
         payments.append(payment)
+        self.write_chat_payments(chat_id=chat_id, payments=payments)
+
+    def delete_payment(self, chat_id: str, payment_id: str):
+        payments = self.read_chat_payments(chat_id=chat_id)
+        for i, payment in enumerate(payments):
+            if payment['id'] == payment_id:
+                del payments[i]
+                break
         self.write_chat_payments(chat_id=chat_id, payments=payments)
 
     def increase_chat_user_balance(self, chat_id: str, user: str, increase_sum: float):

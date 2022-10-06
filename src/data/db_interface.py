@@ -114,3 +114,16 @@ class DBInterface:
             ).first()
             chat_group_payment.payments.append(payment)
             session.commit()
+
+    def delete_chat_group_payment(self, chat_id: str, group_name: str, payment: dict):
+        with self.open_session(self.global_session) as session:
+            chat_group_payment = session.query(model.Payment).filter(
+                model.Payment.chat_id == chat_id,
+                model.Payment.group_name == group_name
+            ).first()
+            for i, p in enumerate(chat_group_payment.payments):
+                if p['id'] == payment['id']:
+                    del chat_group_payment.payments[i]
+                    break
+            session.commit()
+
