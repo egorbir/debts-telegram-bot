@@ -19,8 +19,8 @@ class RedisInterface:
         :return: found group name or None
         """
 
-        return self.rds.hget(chat_id, 'group_name').decode('utf-8') if \
-            self.rds.hget(chat_id, 'group_name') is not None else None
+        return self.rds.hget(chat_id, "group_name").decode("utf-8") if \
+            self.rds.hget(chat_id, "group_name") is not None else None
 
     def write_chat_debts_group_name(self, chat_id: str, name: str):
         """
@@ -29,7 +29,7 @@ class RedisInterface:
         :param name: debts group name to write in redis
         """
 
-        self.rds.hset(chat_id, mapping={'group_name': name})
+        self.rds.hset(chat_id, mapping={"group_name": name})
 
     def read_chat_balances(self, chat_id: str) -> dict:
         """
@@ -38,9 +38,9 @@ class RedisInterface:
         :return: dict of usernames balances
         """
 
-        raw_balances = self.rds.hget(chat_id, 'balances')
+        raw_balances = self.rds.hget(chat_id, "balances")
         if raw_balances is not None:
-            return json.loads(raw_balances.decode('utf-8'))
+            return json.loads(raw_balances.decode("utf-8"))
         else:
             return dict()
 
@@ -51,7 +51,7 @@ class RedisInterface:
         :param balances: dict of usernames balances to write to redis
         """
 
-        self.rds.hset(chat_id, mapping={'balances': json.dumps(balances)})
+        self.rds.hset(chat_id, mapping={"balances": json.dumps(balances)})
 
     def read_chat_payments(self, chat_id: str) -> list[dict]:
         """
@@ -60,9 +60,9 @@ class RedisInterface:
         :return: list of dicts with payments
         """
 
-        raw_payments = self.rds.hget(chat_id, 'payments')
+        raw_payments = self.rds.hget(chat_id, "payments")
         if raw_payments is not None:
-            return json.loads(self.rds.hget(chat_id, 'payments').decode('utf-8'))
+            return json.loads(self.rds.hget(chat_id, "payments").decode("utf-8"))
         else:
             return list()
 
@@ -73,18 +73,18 @@ class RedisInterface:
         :param payments: list of payments to write to redis
         """
 
-        self.rds.hset(chat_id, mapping={'payments': json.dumps(payments)})
+        self.rds.hset(chat_id, mapping={"payments": json.dumps(payments)})
 
     def get_payment(self, chat_id: str, payment_id: str):
         """
-        Get payment by it's id, if not found return None
+        Get payment by it"s id, if not found return None
         :param chat_id: telegram chat id where bot is working
         :param payment_id: payment uuid
         :return: Optional payment dict
         """
 
         payments = self.read_chat_payments(chat_id=chat_id)
-        return next((payment for payment in payments if payment['id'] == payment_id), None)
+        return next((payment for payment in payments if payment["id"] == payment_id), None)
 
     def add_payment(self, chat_id: str, payment: dict):
         payments = self.read_chat_payments(chat_id=chat_id)
@@ -94,7 +94,7 @@ class RedisInterface:
     def delete_payment(self, chat_id: str, payment_id: str):
         payments = self.read_chat_payments(chat_id=chat_id)
         for i, payment in enumerate(payments):
-            if payment['id'] == payment_id:
+            if payment["id"] == payment_id:
                 del payments[i]
                 break
         self.write_chat_payments(chat_id=chat_id, payments=payments)
@@ -108,7 +108,7 @@ class RedisInterface:
         """
 
         balances = self.read_chat_balances(chat_id=chat_id)
-        balances[user] = float(format(balances[user] + increase_sum, '.2f'))
+        balances[user] = float(format(balances[user] + increase_sum, ".2f"))
         self.write_chat_balances(chat_id=chat_id, balances=balances)
 
     def decrease_chat_user_balance(self, chat_id: str, user: str, decrease_sum: float):
@@ -120,7 +120,7 @@ class RedisInterface:
         """
 
         balances = self.read_chat_balances(chat_id=chat_id)
-        balances[user] = float(format(balances[user] - decrease_sum, '.2f'))
+        balances[user] = float(format(balances[user] - decrease_sum, ".2f"))
         self.write_chat_balances(chat_id=chat_id, balances=balances)
 
     def initialize_chat_redis(self, chat_id: str, group_name: str, balances: dict = None, payments: list = None):

@@ -122,7 +122,7 @@ class DBInterface:
                 model.Payment.group_name == group_name
             ).first()
             for i, p in enumerate(chat_group_payment.payments):
-                if p['id'] == payment['id']:
+                if p["id"] == payment["id"]:
                     del chat_group_payment.payments[i]
                     break
             session.commit()

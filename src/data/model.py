@@ -18,11 +18,11 @@ class Payment(Base):
     payments = Column(mutable_json_type(dbtype=JSONB, nested=True))
 
     def __repr__(self):
-        return f'Chat: {self.chat_id}, Group: {self.group_name}'
+        return f"Chat: {self.chat_id}, Group: {self.group_name}"
 
     def serialize(self):
         return {
-            'chat_id': self.chat_id,
-            'group_name': self.group_name,
-            'payments': self.payments
+            "chat_id": self.chat_id,
+            "group_name": self.group_name,
+            "payments": self.payments
         }

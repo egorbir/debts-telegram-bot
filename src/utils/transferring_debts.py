@@ -15,20 +15,20 @@ def add_payment(payment: dict, chat_id: str, redis: RedisInterface):
     :return: No return
     """
 
-    redis.increase_chat_user_balance(chat_id=chat_id, user=payment['payer'], increase_sum=payment['sum'])
-    shared_payment = round(payment['sum'] / len(payment['debtors']), ndigits=2)
-    for debtor in payment['debtors']:
+    redis.increase_chat_user_balance(chat_id=chat_id, user=payment["payer"], increase_sum=payment["sum"])
+    shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
+    for debtor in payment["debtors"]:
         redis.decrease_chat_user_balance(chat_id=chat_id, user=debtor, decrease_sum=shared_payment)
     redis.add_payment(chat_id=chat_id, payment=payment)
 
 
 def delete_payment(payment: dict, chat_id: str, redis: RedisInterface):
 
-    redis.decrease_chat_user_balance(chat_id=chat_id, user=payment['payer'], decrease_sum=payment['sum'])
-    shared_payment = round(payment['sum'] / len(payment['debtors']), ndigits=2)
-    for debtor in payment['debtors']:
+    redis.decrease_chat_user_balance(chat_id=chat_id, user=payment["payer"], decrease_sum=payment["sum"])
+    shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
+    for debtor in payment["debtors"]:
         redis.increase_chat_user_balance(chat_id=chat_id, user=debtor, increase_sum=shared_payment)
-    redis.delete_payment(chat_id=chat_id, payment_id=payment['id'])
+    redis.delete_payment(chat_id=chat_id, payment_id=payment["id"])
 
 
 def normalize_balances(balances: dict):
@@ -42,7 +42,7 @@ def normalize_balances(balances: dict):
     b_sum = sum(balances.values())
     if b_sum != 0:
         random_user = random.choice(list(balances.keys()))
-        balances[random_user] = float(format(balances[random_user] - b_sum, '.2f'))
+        balances[random_user] = float(format(balances[random_user] - b_sum, ".2f"))
     return balances
 
 
@@ -60,18 +60,18 @@ def balances_to_transfers(chat_id: str, redis: RedisInterface) -> list[dict]:
     balances = redis.read_chat_balances(chat_id=chat_id)
     balances = normalize_balances(balances=balances)
     while any(balances.values()):
-        negative = [{'name': name, 'balance': balance} for name, balance in balances.items() if balance < 0]
-        positive = [{'name': name, 'balance': balance} for name, balance in balances.items() if balance > 0]
-        min_positive = min(positive, key=lambda x: x['balance'])
-        min_negative = min(negative, key=lambda x: x['balance'])
-        sum_of_transfer = min(abs(min_negative['balance']), abs(min_positive['balance']))
+        negative = [{"name": name, "balance": balance} for name, balance in balances.items() if balance < 0]
+        positive = [{"name": name, "balance": balance} for name, balance in balances.items() if balance > 0]
+        min_positive = min(positive, key=lambda x: x["balance"])
+        min_negative = min(negative, key=lambda x: x["balance"])
+        sum_of_transfer = min(abs(min_negative["balance"]), abs(min_positive["balance"]))
         transfers.append({
-            'from': min_negative['name'],
-            'to': min_positive['name'],
-            'payment': sum_of_transfer
+            "from": min_negative["name"],
+            "to": min_positive["name"],
+            "payment": sum_of_transfer
         })
-        balances[min_negative['name']] = float(format(balances[min_negative['name']] + sum_of_transfer, '.2f'))
-        balances[min_positive['name']] = float(format(balances[min_positive['name']] - sum_of_transfer, '.2f'))
+        balances[min_negative["name"]] = float(format(balances[min_negative["name"]] + sum_of_transfer, ".2f"))
+        balances[min_positive["name"]] = float(format(balances[min_positive["name"]] - sum_of_transfer, ".2f"))
     return transfers
 
 
@@ -86,8 +86,8 @@ def payments_to_balances(payments: list[dict]) -> dict[str, float]:
 
     balances = defaultdict(lambda: 0.0)
     for payment in payments:
-        balances[payment['payer']] = float(format(balances[payment['payer']] + payment['sum'], '.2f'))
-        shared_payment = round(payment['sum'] / len(payment['debtors']))
-        for debtor in payment['debtors']:
-            balances[debtor] = float(format(balances[debtor] - shared_payment, '.2f'))
+        balances[payment["payer"]] = float(format(balances[payment["payer"]] + payment["sum"], ".2f"))
+        shared_payment = round(payment["sum"] / len(payment["debtors"]))
+        for debtor in payment["debtors"]:
+            balances[debtor] = float(format(balances[debtor] - shared_payment, ".2f"))
     return dict(balances)
