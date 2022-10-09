@@ -5,7 +5,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.handlers.constants import DB, DeletePayment, RDS, delete_cb
 from src.handlers.utils import create_found_payments_keyboard
-from src.utils.transferring_debts import delete_payment
 
 
 async def start_payment_delete(msg: types.Message):
@@ -14,8 +13,8 @@ async def start_payment_delete(msg: types.Message):
     """
 
     chat_id = str(msg.chat.id)
-    group_name = RDS.read_chat_debts_group_name(chat_id=chat_id)
-    payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
     if len(payments) == 0:
         message = "No payments yet"
         await msg.answer(message)
@@ -34,8 +33,8 @@ async def show_payment_history_for_delete(call: types.CallbackQuery):
     """
 
     chat_id = str(call.message.chat.id)
-    group_name = RDS.read_chat_debts_group_name(chat_id=chat_id)
-    payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
     history_reply_template = "History:\n"
     for p in payments:
         history_reply_template += f'\n{p["date"]} - Payed: {p["payer"]} for {", ".join(p["debtors"])} - {p["sum"]}' \
@@ -63,13 +62,13 @@ async def comment_search_enter(msg: types.Message, state: FSMContext):
     """
 
     chat_id = str(msg.chat.id)
-    group_name = RDS.read_chat_debts_group_name(chat_id=chat_id)
-    payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
-    matching = [p for p in payments if msg.text in p["comment"].lower()]
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
+    matching = [p for p in payments if msg.text.lower() in p["comment"].lower()]
     search_reply_template = "Found:\n"
     for i, p in enumerate(matching):
         search_reply_template += f'<b>{i+1}</b>. {p["date"]} - Payed: {p["payer"]} за {", ".join(p["debtors"])} - ' \
-                                 f'{p["sum"]} \nКомментарий - {p["comment"]}' \
+                                 f'{p["sum"]} \nComment - {p["comment"]}' \
                                  f'\n____________________________\n'
     if len(matching) == 0:
         keyboard = InlineKeyboardMarkup().add(*[
@@ -120,13 +119,15 @@ async def delete_selected_payment(call: types.CallbackQuery, state: FSMContext, 
     """
 
     chat_id = str(call.message.chat.id)
-    payment = RDS.get_payment(chat_id=call.message.chat.id, payment_id=callback_data["payment"])
+    payment_id = callback_data["payment"]
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payment = DB.get_chat_group_payment_by_id(chat_id=chat_id, group_name=group_name, payment_id=payment_id)
     DB.delete_chat_group_payment(
         chat_id=chat_id,
-        group_name=RDS.read_chat_debts_group_name(chat_id=chat_id),
-        payment=payment
+        group_name=group_name,
+        payment_id=payment_id
     )
-    delete_payment(payment=payment, chat_id=call.message.chat.id, redis=RDS)
+    RDS.delete_chat_payment_update_balances(chat_id=call.message.chat.id, payment=payment)
     await call.message.edit_text(f"Payment Deleted!")
     await state.finish()
 

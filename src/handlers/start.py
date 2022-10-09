@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from src.data.credentials import BOT_NAME
 from src.handlers.constants import DB, RDS, Register
 from src.handlers.utils import create_cancel_keyboard, timeout
-from src.utils.transferring_debts import payments_to_balances
+from src.utils.balances_processing import payments_to_balances
 
 
 @timeout(state_to_cancel="Register:waiting_for_group_name")
@@ -14,7 +14,7 @@ async def start(msg: types.Message, state: FSMContext):
     """
 
     if msg.chat.type == types.ChatType.GROUP:
-        if RDS.read_chat_debts_group_name(chat_id=msg.chat.id) is not None:
+        if RDS.get_chat_debts_group_name(chat_id=msg.chat.id) is not None:
             hello_message = "Group is already in progress, you can only /newgroup to create a new one"
             await msg.answer(hello_message)
         else:
@@ -53,13 +53,12 @@ async def restart_group_name(msg: types.Message, state: FSMContext):
     chat_id = str(msg.chat.id)
     group_name = msg.text.strip().replace(" ", "_")
     if group_name in DB.get_chat_groups(chat_id=chat_id):
-        old_payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
+        old_payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
         restart_balances = payments_to_balances(payments=old_payments)
         RDS.initialize_chat_redis(
             chat_id=chat_id,
             group_name=group_name,
-            balances=restart_balances,
-            payments=old_payments
+            balances=restart_balances
         )
         message = f"Group {group_name} restarted. Has {len(old_payments)} payments"
         await state.finish()
@@ -108,15 +107,11 @@ async def register_user(msg: types.Message):
     """
 
     username = f"@{msg.from_user.username}"
-    name = f"{msg.from_user.first_name} {msg.from_user.last_name}"
-    redis_balances = RDS.read_chat_balances(chat_id=msg.chat.id)
-    if username not in redis_balances:
-        redis_balances[username] = 0
+    if RDS.add_user_to_balances(chat_id=msg.chat.id, username=username):
         message = f"Good, now you are in group - {username}"
     else:
         message = "Already in group"
     await msg.answer(text=message)
-    RDS.write_chat_balances(chat_id=msg.chat.id, balances=redis_balances)
 
 
 async def unregister_user(msg: types.Message):
@@ -125,12 +120,8 @@ async def unregister_user(msg: types.Message):
     """
 
     username = f"@{msg.from_user.username}"
-    name = f"{msg.from_user.first_name} {msg.from_user.last_name}"
-    balances = RDS.read_chat_balances(chat_id=msg.chat.id)
-    if len(RDS.read_chat_payments(chat_id=msg.chat.id)) == 0:
-        balances.pop(username, None)
+    if RDS.remove_user_from_balances(chat_id=msg.chat.id, username=username):
         result_msg = f"User {username} successfully deleted from group"
-        RDS.write_chat_balances(chat_id=msg.chat.id, balances=balances)
     else:
         result_msg = "There are already payments in this group, ypu cannot leave"
     await msg.answer(result_msg)

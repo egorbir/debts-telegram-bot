@@ -8,7 +8,8 @@ async def get_users_payments_stats(msg: types.Message):
     Print statistics of users payments amounts
     """
 
-    payments = RDS.read_chat_payments(chat_id=msg.chat.id)
+    group_name = RDS.get_chat_debts_group_name(chat_id=msg.chat.id)
+    payments = DB.get_all_chat_group_payments(chat_id=msg.chat.id, group_name=group_name)["payments"]
     stats = dict()
     for payment in payments:
         if payment["payer"] not in stats:
@@ -30,9 +31,8 @@ async def list_payments(msg: types.Message):
     Print payments history
     """
 
-    chat_id = str(msg.chat.id)
-    group_name = RDS.read_chat_debts_group_name(chat_id=chat_id)
-    payments = DB.get_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
+    group_name = RDS.get_chat_debts_group_name(chat_id=msg.chat.id)
+    payments = DB.get_all_chat_group_payments(chat_id=msg.chat.id, group_name=group_name)["payments"]
     if len(payments) == 0:
         message = "No payments yet"
         await msg.answer(message)

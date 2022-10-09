@@ -10,7 +10,7 @@ async def status(msg: types.Message):
     Status command. Checks database and redis and prints current status of what is going on
     """
 
-    current_group = RDS.read_chat_debts_group_name(chat_id=msg.chat.id)
+    current_group = RDS.get_chat_debts_group_name(chat_id=msg.chat.id)
     db_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
     if current_group is None:
         if db_groups is not None:
@@ -28,7 +28,7 @@ async def list_users(msg: types.Message):
     Prints all users who registered for current group of debts with /reg command
     """
 
-    balances = RDS.read_chat_balances(msg.chat.id)
+    balances = RDS.get_chat_balances(msg.chat.id)
     result_message_text = "No one is in debts group" if len(balances) == 0 else "Now in the debts counting are:\n"
     for user in balances:
         result_message_text += f"{user}\n"

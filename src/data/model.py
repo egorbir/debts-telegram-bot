@@ -6,7 +6,7 @@ from sqlalchemy_json import mutable_json_type
 Base = declarative_base()
 
 
-class Payment(Base):
+class PaymentsGroup(Base):
     """
     Chat payments table
     """

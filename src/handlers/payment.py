@@ -11,8 +11,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
 from .utils import EMOJIS, create_confirmation_keyboard, create_debtors_keyboard, \
     create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors, timeout
-from ..data.credentials import BOT_NAME
-from ..utils.transferring_debts import add_payment, balances_to_transfers
+from src.data.credentials import BOT_NAME
+from src.utils.balances_processing import balances_to_transfers
 
 
 @timeout(state_to_cancel="AddPayment:waiting_for_payer")
@@ -28,7 +28,7 @@ async def register_payment(msg: Union[types.Message, types.CallbackQuery], state
 
     # Multipurpose handler for both "/pay" command and "back" inline button
     chat_id = msg.chat.id if isinstance(msg, types.Message) else msg.message.chat.id
-    balances = RDS.read_chat_balances(chat_id=chat_id)
+    balances = RDS.get_chat_balances(chat_id=chat_id)
     if len(balances) < 3:
         message = f"Works with 3 or more people, now - {len(balances)}. " \
                   f"Use /reg command and check who is in group with /list"
@@ -59,7 +59,7 @@ async def payer_select_callback(msg: types.CallbackQuery, state: FSMContext, cal
     """
 
     # Save selected payer to storage
-    balances = RDS.read_chat_balances(chat_id=msg.message.chat.id)
+    balances = RDS.get_chat_balances(chat_id=msg.message.chat.id)
     await state.update_data(debtors=list())
     if "payer" in callback_data:
         await state.update_data(payer=callback_data["payer"])
@@ -87,7 +87,7 @@ async def get_debtors_callback(msg: types.CallbackQuery, callback_data: dict, st
     :return: None
     """
 
-    balances = RDS.read_chat_balances(chat_id=msg.message.chat.id)
+    balances = RDS.get_chat_balances(chat_id=msg.message.chat.id)
     user_state_data = await state.get_data()
     user_state_data["debtors"] = edit_user_state_for_debtors(
         debtors_state=user_state_data["debtors"],
@@ -201,12 +201,9 @@ async def confirm_payment(msg: types.CallbackQuery, state: FSMContext):
 
     chat_id = str(msg.message.chat.id)
     user_state_data = await state.get_data()
-    add_payment(payment=user_state_data["final_payment"], chat_id=msg.message.chat.id, redis=RDS)
-    DB.add_chat_group_payment(
-        chat_id=chat_id,
-        group_name=RDS.read_chat_debts_group_name(chat_id=chat_id),
-        payment=user_state_data["final_payment"]
-    )
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    DB.add_chat_group_payment(chat_id=chat_id, group_name=group_name, payment=user_state_data["final_payment"])
+    RDS.add_chat_payment_update_balances(chat_id=chat_id, payment=user_state_data["final_payment"])
     message = "Payment added"
     await msg.message.answer(message)
     await msg.answer()
@@ -223,7 +220,7 @@ async def end_counting(msg: types.Message, state: FSMContext):
     :param state: redis storage
     """
 
-    transfers = balances_to_transfers(chat_id=msg.chat.id, redis=RDS)
+    transfers = balances_to_transfers(balances=RDS.get_chat_balances(chat_id=msg.chat.id))
     await state.update_data(transfers=transfers)
     if len(transfers) == 0:
         transfers_message = "No money transfers needed"
@@ -241,15 +238,20 @@ async def all_debts_payed_callback(msg: types.CallbackQuery, state: FSMContext):
     :param state: redis storage
     """
 
+    chat_id = str(msg.message.chat.id)
     user_state_data = await state.get_data()
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
     for transfer in user_state_data["transfers"]:
-        add_payment(payment={
+        payment = {
             "payer": transfer["from"],
             "sum": transfer["payment"],
             "debtors": [transfer["to"]],
             "comment": "Debt payback",
             "date": datetime.datetime.now().strftime("%d.%m.%Y - %H:%M")
-        }, chat_id=msg.message.chat.id, redis=RDS)
+        }
+        DB.add_chat_group_payment(chat_id=chat_id, group_name=group_name, payment=payment)
+        RDS.add_chat_payment_update_balances(chat_id=chat_id, payment=payment)
+
     message = "All debts payed, payments written to history"
     await msg.message.answer(message)
     await msg.answer()
@@ -263,7 +265,8 @@ def register_payment_handlers(dp: Dispatcher):
 
     # Text messages handlers
     dp.register_message_handler(get_payment_sum, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_sum)
-    dp.register_message_handler(comment_and_finish, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_comment)
+    dp.register_message_handler(comment_and_finish, chat_type=types.ChatType.GROUP,
+                                state=AddPayment.waiting_for_comment)
 
     # Return to payer choosing callback
     dp.register_callback_query_handler(

@@ -1,35 +1,6 @@
 import random
 from collections import defaultdict
 
-from src.data.redis_interface import RedisInterface
-
-
-def add_payment(payment: dict, chat_id: str, redis: RedisInterface):
-    """
-    Get payment dict, write it to redis & change redis balances.
-    Balances changed one by one with special interface method
-
-    :param payment: payment dict from the bot
-    :param chat_id: id of chat where the bot is running
-    :param redis: Redis Interface
-    :return: No return
-    """
-
-    redis.increase_chat_user_balance(chat_id=chat_id, user=payment["payer"], increase_sum=payment["sum"])
-    shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
-    for debtor in payment["debtors"]:
-        redis.decrease_chat_user_balance(chat_id=chat_id, user=debtor, decrease_sum=shared_payment)
-    redis.add_payment(chat_id=chat_id, payment=payment)
-
-
-def delete_payment(payment: dict, chat_id: str, redis: RedisInterface):
-
-    redis.decrease_chat_user_balance(chat_id=chat_id, user=payment["payer"], decrease_sum=payment["sum"])
-    shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
-    for debtor in payment["debtors"]:
-        redis.increase_chat_user_balance(chat_id=chat_id, user=debtor, increase_sum=shared_payment)
-    redis.delete_payment(chat_id=chat_id, payment_id=payment["id"])
-
 
 def normalize_balances(balances: dict):
     """
@@ -46,18 +17,16 @@ def normalize_balances(balances: dict):
     return balances
 
 
-def balances_to_transfers(chat_id: str, redis: RedisInterface) -> list[dict]:
+def balances_to_transfers(balances: dict) -> list[dict]:
     """
     Convert balances to money transfers in the end of the work.
     Creates list of transfers without any extra money travel
 
-    :param chat_id: id of chat where the bot is running
-    :param redis: Redis interface
+    :param balances: dict of users balances
     :return: list of money transfers to pay all the debts off
     """
 
     transfers = list()
-    balances = redis.read_chat_balances(chat_id=chat_id)
     balances = normalize_balances(balances=balances)
     while any(balances.values()):
         negative = [{"name": name, "balance": balance} for name, balance in balances.items() if balance < 0]
