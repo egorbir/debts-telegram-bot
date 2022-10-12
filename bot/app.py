@@ -4,7 +4,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.utils import executor
 
-from src.data.credentials import BOT_TOKEN, REDIS_HOST, REDIS_PASS, REDIS_PORT
+from bot.set_bot_commands import set_bot_group_commands, set_bot_commands
+from src.credentials import BOT_TOKEN, REDIS_HOST, REDIS_PASS, REDIS_PORT
 from src.handlers import (
     register_common_handlers,
     register_payment_handlers,
@@ -14,7 +15,6 @@ from src.handlers import (
     register_user_chat_handlers,
     register_delete_handlers
 )
-from bot.set_bot_commands import set_bot_group_commands, set_bot_commands
 
 logger = logging.getLogger(__name__)
 

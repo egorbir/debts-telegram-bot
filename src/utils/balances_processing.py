@@ -47,7 +47,7 @@ def balances_to_transfers(balances: dict) -> list[dict]:
 def payments_to_balances(payments: list[dict]) -> dict[str, float]:
     """
     Convert history of payments to user balances.
-    Can be useful in case of server restart and loss of actual balances data from Redis
+    Can be useful in case of server restart and loss of actual balances interfaces from Redis
 
     :param payments: list of payments history
     :return: recovered user balances

@@ -1,45 +1,7 @@
-import asyncio
-from typing import Optional, Union
-
 from aiogram import types
-from aiogram.dispatcher import FSMContext
 
-from src.handlers.constants import all_cb, debtor_cb, delete_cb, payer_cb
-
-# Map of emojis used in buttons
-EMOJIS = {
-    "back": "\u21A9",
-    "all": "\u2714",
-    "cancel": "\u274C",
-    "done": "\u2705",
-    "checkbox": "\u2611",
-    "forward": "\u25B6",
-    "backward": "\u25C0"
-}
-
-
-def timeout(state_to_cancel: str):
-    def timeout_wrapper(handler_func):
-        async def wrapper(
-                msg: Union[types.Message, types.CallbackQuery],
-                state: FSMContext,
-                callback_data: Optional[dict] = None
-        ):
-            timeout_message = "Waiting for response message timed out. " \
-                              "Start the operation again by running the same command"
-            if callback_data is not None:
-                await handler_func(msg, state, callback_data)
-            else:
-                await handler_func(msg, state)
-            await asyncio.sleep(300)
-            if await state.get_state() == state_to_cancel:
-                if isinstance(msg, types.Message):
-                    await msg.reply(timeout_message)
-                elif isinstance(msg, types.CallbackQuery):
-                    await msg.message.reply(timeout_message)
-                await state.finish()
-        return wrapper
-    return timeout_wrapper
+from src.constants import EMOJIS
+from src.utils.callbacks_data import all_cb, debtor_cb, delete_cb, payer_cb
 
 
 def create_payers_keyboard(balances: dict):

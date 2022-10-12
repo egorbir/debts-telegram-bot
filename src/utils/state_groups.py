@@ -1,29 +1,4 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils.callback_data import CallbackData
-
-from src.data.credentials import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER, REDIS_HOST, REDIS_PASS, REDIS_PORT
-from src.data.db_interface import DBInterface
-from src.data.redis_interface import RedisInterface
-
-# Database interface instance
-DB = DBInterface(
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database_name=DB_NAME,
-    host=DB_HOST,
-    port=DB_PORT
-)
-
-# Redis interface instance
-RDS = RedisInterface(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS)
-
-
-# Different callback data to use in different keyboards
-payer_cb = CallbackData("payer", "payer")
-debtor_cb = CallbackData("debtor", "debtor")
-all_cb = CallbackData("all", "all")
-delete_cb = CallbackData("payment", "payment")
-back_pay = CallbackData("back_payers")
 
 
 # States to use while start and registration

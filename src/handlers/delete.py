@@ -3,8 +3,10 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.handlers.constants import DB, DeletePayment, RDS, delete_cb
-from src.handlers.utils import create_found_payments_keyboard
+from src.constants import DB, RDS
+from src.utils.callbacks_data import delete_cb
+from src.utils.keyboards import create_found_payments_keyboard
+from src.utils.state_groups import DeletePayment
 
 
 async def start_payment_delete(msg: types.Message):

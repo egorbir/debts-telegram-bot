@@ -1,8 +1,8 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
-from src.handlers.constants import Feedback
-from src.handlers.utils import timeout
+from src.utils.decorators import timeout
+from src.utils.state_groups import Feedback
 
 
 @timeout(state_to_cancel="Feedback:waiting_for_feedback_message")

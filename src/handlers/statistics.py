@@ -1,6 +1,6 @@
 from aiogram import Dispatcher, types
 
-from src.handlers.constants import RDS, DB
+from src.constants import RDS, DB
 
 
 async def get_users_payments_stats(msg: types.Message):

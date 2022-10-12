@@ -1,10 +1,12 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
-from src.data.credentials import BOT_NAME
-from src.handlers.constants import DB, RDS, Register
-from src.handlers.utils import create_cancel_keyboard, timeout
+from src.constants import DB, RDS
+from src.credentials import BOT_NAME
 from src.utils.balances_processing import payments_to_balances
+from src.utils.decorators import timeout
+from src.utils.keyboards import create_cancel_keyboard
+from src.utils.state_groups import Register
 
 
 @timeout(state_to_cancel="Register:waiting_for_group_name")

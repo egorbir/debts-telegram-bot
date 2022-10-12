@@ -143,7 +143,7 @@ class RedisInterface:
 
     def initialize_chat_redis(self, chat_id: str, group_name: str, balances: dict = None):
         """
-        Initialize chat redis with data
+        Initialize chat redis with interfaces
         :param chat_id: telegram chat id where bot is working
         :param group_name: name of debts group
         :param balances: dict of username balances

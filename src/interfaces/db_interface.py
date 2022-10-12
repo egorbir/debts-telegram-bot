@@ -5,7 +5,7 @@ import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.data import model
+from src.interfaces import db_model
 
 
 class DBInterface:
@@ -23,8 +23,8 @@ class DBInterface:
         self.global_session = sessionmaker()
         self.global_session.configure(bind=self.engine)
 
-        if not sqlalchemy.inspect(self.engine).has_table(model.PaymentsGroup.__tablename__):
-            model.Base.metadata.create_all(self.engine)
+        if not sqlalchemy.inspect(self.engine).has_table(db_model.PaymentsGroup.__tablename__):
+            db_model.Base.metadata.create_all(self.engine)
 
     @contextlib.contextmanager
     def open_session(self, global_session):
@@ -40,8 +40,8 @@ class DBInterface:
         """
 
         with self.open_session(self.global_session) as session:
-            chat_payments_group = session.query(model.PaymentsGroup).filter(
-                model.PaymentsGroup.chat_id == chat_id
+            chat_payments_group = session.query(db_model.PaymentsGroup).filter(
+                db_model.PaymentsGroup.chat_id == chat_id
             ).all()
         return list({cq.group_name for cq in chat_payments_group}) if chat_payments_group is not None else []
 
@@ -54,7 +54,7 @@ class DBInterface:
 
         if group_name not in self.get_chat_groups(chat_id=chat_id):
             with self.open_session(self.global_session) as session:
-                new_chat_payments_group = model.PaymentsGroup(chat_id=chat_id, group_name=group_name, payments=[])
+                new_chat_payments_group = db_model.PaymentsGroup(chat_id=chat_id, group_name=group_name, payments=[])
                 session.add(new_chat_payments_group)
                 session.commit()
 
@@ -67,9 +67,9 @@ class DBInterface:
         """
 
         with self.open_session(self.global_session) as session:
-            chat_payments_group = session.query(model.PaymentsGroup).filter(
-                model.PaymentsGroup.chat_id == chat_id,
-                model.PaymentsGroup.group_name == group_name
+            chat_payments_group = session.query(db_model.PaymentsGroup).filter(
+                db_model.PaymentsGroup.chat_id == chat_id,
+                db_model.PaymentsGroup.group_name == group_name
             ).first()
             chat_payments_group.payments.append(payment)
             session.commit()
@@ -83,9 +83,9 @@ class DBInterface:
         """
 
         with self.open_session(self.global_session) as session:
-            chat_payments_group = session.query(model.PaymentsGroup).filter(
-                model.PaymentsGroup.chat_id == chat_id,
-                model.PaymentsGroup.group_name == group_name
+            chat_payments_group = session.query(db_model.PaymentsGroup).filter(
+                db_model.PaymentsGroup.chat_id == chat_id,
+                db_model.PaymentsGroup.group_name == group_name
             ).first()
             for i, p in enumerate(chat_payments_group.payments):
                 if p["id"] == payment_id:
@@ -102,9 +102,9 @@ class DBInterface:
         """
 
         with self.open_session(self.global_session) as session:
-            chat_payments_group = session.query(model.PaymentsGroup).filter(
-                model.PaymentsGroup.chat_id == chat_id,
-                model.PaymentsGroup.group_name == group_name
+            chat_payments_group = session.query(db_model.PaymentsGroup).filter(
+                db_model.PaymentsGroup.chat_id == chat_id,
+                db_model.PaymentsGroup.group_name == group_name
             ).first()
         return chat_payments_group.serialize() if chat_payments_group is not None else None
 
@@ -117,9 +117,9 @@ class DBInterface:
         """
 
         with self.open_session(self.global_session) as session:
-            chat_payments_group = session.query(model.PaymentsGroup).filter(
-                model.PaymentsGroup.chat_id == chat_id,
-                model.PaymentsGroup.group_name == group_name
+            chat_payments_group = session.query(db_model.PaymentsGroup).filter(
+                db_model.PaymentsGroup.chat_id == chat_id,
+                db_model.PaymentsGroup.group_name == group_name
             ).first()
         return next(payment for payment in chat_payments_group.payments if payment["id"] == payment_id)
 

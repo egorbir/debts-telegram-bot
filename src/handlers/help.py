@@ -4,7 +4,7 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
-from src.handlers.utils import EMOJIS
+from src.constants import EMOJIS
 
 
 async def first_help_message(msg: Union[types.Message, types.CallbackQuery]):
@@ -34,7 +34,7 @@ async def second_help_message(call: types.CallbackQuery):
     Second message in bot help dialog 
     """
 
-    message = "Describing how the bot's work, the following terms will be used:\n\n" \
+    message = "Describing how the bot works, the following terms will be used:\n\n" \
               "\u2022 <b>Chat</b> - group chat in which the bot was added as the administrator\n" \
               "\u2022 <b>Group of payments (or just group)</b> - a separate group of expenses '\
               '(for example trip to the mountains, barbecue ets.)\n" \

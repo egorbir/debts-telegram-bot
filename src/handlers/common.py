@@ -2,7 +2,7 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
-from src.handlers.constants import DB, RDS
+from src.constants import DB, RDS
 
 
 async def status(msg: types.Message):

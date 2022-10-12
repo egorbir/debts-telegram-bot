@@ -8,11 +8,14 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from .constants import AddPayment, DB, RDS, all_cb, back_pay, debtor_cb, payer_cb
-from .utils import EMOJIS, create_confirmation_keyboard, create_debtors_keyboard, \
-    create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors, timeout
-from src.data.credentials import BOT_NAME
+from src.constants import DB, RDS
+from src.credentials import BOT_NAME
 from src.utils.balances_processing import balances_to_transfers
+from src.utils.callbacks_data import all_cb, back_pay, debtor_cb, payer_cb
+from src.utils.decorators import timeout
+from src.utils.keyboards import EMOJIS, create_confirmation_keyboard, create_debtors_keyboard, \
+    create_debts_payments_confirmation_keyboard, create_payers_keyboard, edit_user_state_for_debtors
+from src.utils.state_groups import AddPayment
 
 
 @timeout(state_to_cancel="AddPayment:waiting_for_payer")
@@ -53,7 +56,7 @@ async def payer_select_callback(msg: types.CallbackQuery, state: FSMContext, cal
     First - save selected payer to user storage. Second - render interface for debtors choose
 
     :param msg: Callback
-    :param callback_data: Callback data
+    :param callback_data: Callback interfaces
     :param state: redis state
     :return: None
     """
@@ -82,7 +85,7 @@ async def get_debtors_callback(msg: types.CallbackQuery, callback_data: dict, st
     Starts on: 1 - initial render, 2 - single debtor change, 3 - select all debtors
 
     :param msg: Callback
-    :param callback_data: Callback data
+    :param callback_data: Callback interfaces
     :param state: redis state
     :return: None
     """
