@@ -4,10 +4,10 @@ from collections import defaultdict
 
 def normalize_balances(balances: dict):
     """
-    Normalize all balances in order to equal their sum to 0
+    Normalize all balances in order to equal their amount to 0
 
     :param balances: dict of balances from Redis
-    :return: normalized balances with 0 sum
+    :return: normalized balances with 0 amount
     """
 
     b_sum = sum(balances.values())
@@ -55,8 +55,8 @@ def payments_to_balances(payments: list[dict]) -> dict[str, float]:
 
     balances = defaultdict(lambda: 0.0)
     for payment in payments:
-        balances[payment["payer"]] = float(format(balances[payment["payer"]] + payment["sum"], ".2f"))
-        shared_payment = round(payment["sum"] / len(payment["debtors"]))
+        balances[payment["payer"]] = float(format(balances[payment["payer"]] + payment["amount"], ".2f"))
+        shared_payment = round(payment["amount"] / len(payment["debtors"]))
         for debtor in payment["debtors"]:
             balances[debtor] = float(format(balances[debtor] - shared_payment, ".2f"))
     return dict(balances)

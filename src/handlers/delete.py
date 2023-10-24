@@ -39,7 +39,7 @@ async def show_payment_history_for_delete(call: types.CallbackQuery):
     payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
     history_reply_template = "History:\n"
     for p in payments:
-        history_reply_template += f'\n{p["date"]} - Payed: {p["payer"]} for {", ".join(p["debtors"])} - {p["sum"]}' \
+        history_reply_template += f'\n{p["date"]} - Payed: {p["payer"]} for {", ".join(p["debtors"])} - {p["amount"]}' \
                                   f'\nComment - {p["comment"]}' \
                                   f'\n____________________________'
     await call.message.edit_text(history_reply_template)
@@ -70,7 +70,7 @@ async def comment_search_enter(msg: types.Message, state: FSMContext):
     search_reply_template = "Found:\n"
     for i, p in enumerate(matching):
         search_reply_template += f'<b>{i+1}</b>. {p["date"]} - Payed: {p["payer"]} за {", ".join(p["debtors"])} - ' \
-                                 f'{p["sum"]} \nComment - {p["comment"]}' \
+                                 f'{p["amount"]} \nComment - {p["comment"]}' \
                                  f'\n____________________________\n'
     if len(matching) == 0:
         keyboard = InlineKeyboardMarkup().add(*[
@@ -85,7 +85,7 @@ async def comment_search_enter(msg: types.Message, state: FSMContext):
         ])
         message = f"Found one payment\n\n" \
                   f'{matching[0]["date"]} - Payed: {matching[0]["payer"]} for {", ".join(matching[0]["debtors"])} - ' \
-                  f'{matching[0]["sum"]} \nComment - {matching[0]["comment"]} \n\n' \
+                  f'{matching[0]["amount"]} \nComment - {matching[0]["comment"]} \n\n' \
                   f'Delete?'
         await msg.answer(message, reply_markup=keyboard)
         await DeletePayment.waiting_for_confirm.set()

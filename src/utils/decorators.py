@@ -1,6 +1,5 @@
 import asyncio
 import functools
-from typing import Union, Optional
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -16,9 +15,9 @@ def timeout(state_to_cancel: str):
     def timeout_wrapper(handler_func):
         @functools.wraps(handler_func)
         async def wrapper(
-                msg: Union[types.Message, types.CallbackQuery],
+                msg: types.Message | types.CallbackQuery,
                 state: FSMContext,
-                callback_data: Optional[dict] = None
+                callback_data: dict | None = None
         ):
             timeout_message = "Waiting for response message timed out. " \
                               "Start the operation again by running the same command"

@@ -37,10 +37,16 @@ async def restart(msg: types.Message, state: FSMContext):
     """
 
     old_groups = DB.get_chat_groups(chat_id=str(msg.chat.id))
-    message = f"Old groups - {', '.join([g.replace('_', ' ') for g in old_groups])}. Type exact name of the " \
-              f"group to restart it"
-    await msg.answer(text=message, reply_markup=create_cancel_keyboard())
-    await Register.waiting_for_restart_group_name.set()
+    message = ""
+    if len(old_groups) == 0:
+        message += 'There are no old groups. Enter group name to start new group'
+        await msg.answer(text=message, reply_markup=create_cancel_keyboard())
+        await Register.waiting_for_group_name.set()
+    else:
+        message = f"Old groups - {', '.join([g.replace('_', ' ') for g in old_groups])}. Type exact name of the " \
+                  f"group to restart it"
+        await msg.answer(text=message, reply_markup=create_cancel_keyboard())
+        await Register.waiting_for_restart_group_name.set()
 
 
 async def restart_group_name(msg: types.Message, state: FSMContext):

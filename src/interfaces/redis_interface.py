@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from redis.client import Redis
 
@@ -42,10 +41,10 @@ class RedisInterface:
 
     def _increase_chat_user_balance(self, chat_id: str, user: str, increase_sum: float):
         """
-        Add sum to user balance in chat redis
+        Add amount to user balance in chat redis
         :param chat_id: telegram chat id where bot is working
         :param user: username to increase balance
-        :param increase_sum: money sum add to balance
+        :param increase_sum: money amount add to balance
         """
 
         balances = self._read_chat_balances(chat_id=chat_id)
@@ -54,17 +53,17 @@ class RedisInterface:
 
     def _decrease_chat_user_balance(self, chat_id: str, user: str, decrease_sum: float):
         """
-        Subtract sum from user balance in chat redis
+        Subtract amount from user balance in chat redis
         :param chat_id: telegram chat id where bot is working
         :param user: username to decrease balance
-        :param decrease_sum: money sum subtract from balance
+        :param decrease_sum: money amount subtract from balance
         """
 
         balances = self._read_chat_balances(chat_id=chat_id)
         balances[user] = float(format(balances[user] - decrease_sum, ".2f"))
         self._write_chat_balances(chat_id=chat_id, balances=balances)
 
-    def get_chat_debts_group_name(self, chat_id: str) -> Optional[str]:
+    def get_chat_debts_group_name(self, chat_id: str) -> str | None:
         """
         Get current debts group name from chat redis
         :param chat_id: telegram chat id where bot is working
@@ -92,8 +91,8 @@ class RedisInterface:
         :param chat_id: id of chat where the bot is running
         """
 
-        self._increase_chat_user_balance(chat_id=chat_id, user=payment["payer"], increase_sum=payment["sum"])
-        shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
+        self._increase_chat_user_balance(chat_id=chat_id, user=payment["payer"], increase_sum=payment["amount"])
+        shared_payment = round(payment["amount"] / len(payment["debtors"]), ndigits=2)
         for debtor in payment["debtors"]:
             self._decrease_chat_user_balance(chat_id=chat_id, user=debtor, decrease_sum=shared_payment)
 
@@ -104,8 +103,8 @@ class RedisInterface:
         :param payment: dict of payment to be deleted
         """
 
-        self._decrease_chat_user_balance(chat_id=chat_id, user=payment["payer"], decrease_sum=payment["sum"])
-        shared_payment = round(payment["sum"] / len(payment["debtors"]), ndigits=2)
+        self._decrease_chat_user_balance(chat_id=chat_id, user=payment["payer"], decrease_sum=payment["amount"])
+        shared_payment = round(payment["amount"] / len(payment["debtors"]), ndigits=2)
         for debtor in payment["debtors"]:
             self._increase_chat_user_balance(chat_id=chat_id, user=debtor, increase_sum=shared_payment)
 

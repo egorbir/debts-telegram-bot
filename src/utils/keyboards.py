@@ -61,7 +61,7 @@ def create_confirmation_keyboard(payment: dict):
     """
 
     message_txt = f"Payment:\n\n{payment['payer']} payed for {', '.join(payment['debtors'])}\n\n" \
-                  f"Sum: {payment['sum']}\n\nComment: {payment['comment']}"
+                  f"Sum: {payment['amount']}\n\nComment: {payment['comment']}"
     buttons = [
         types.InlineKeyboardButton(f"{EMOJIS['done']} Confirm", callback_data="confirm"),
         types.InlineKeyboardButton(f"{EMOJIS['cancel']} Cancel", callback_data="cancel")

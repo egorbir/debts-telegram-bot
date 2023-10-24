@@ -1,7 +1,6 @@
 import datetime
 import re
 import uuid
-from typing import Union
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
@@ -19,7 +18,7 @@ from src.utils.state_groups import AddPayment
 
 
 @timeout(state_to_cancel="AddPayment:waiting_for_payer")
-async def register_payment(msg: Union[types.Message, types.CallbackQuery], state: FSMContext):
+async def register_payment(msg: types.Message | types.CallbackQuery, state: FSMContext):
     """
     Base start of payment add handler.
     Start of add - command '/pay', come back from payer - callback 'back'
@@ -112,7 +111,7 @@ async def get_debtors_callback(msg: types.CallbackQuery, callback_data: dict, st
 async def done_select_callback(msg: types.CallbackQuery, state: FSMContext):
     """
     Callback on done button after all debtors are chosen.
-    Render interface for payment sum enter
+    Render interface for payment amount enter
 
     :param msg: Callback
     :param state: redis state
@@ -124,7 +123,7 @@ async def done_select_callback(msg: types.CallbackQuery, state: FSMContext):
         message = "No one chosen"
         await msg.answer(message)
     else:
-        sum_message = "Enter sum of payment:"
+        sum_message = "Enter amount of payment:"
         keyboard = InlineKeyboardMarkup().add(
             *[
                 InlineKeyboardButton(f"{EMOJIS['back']} Back", callback_data=back_pay.new()),
@@ -136,9 +135,9 @@ async def done_select_callback(msg: types.CallbackQuery, state: FSMContext):
 
 
 @timeout(state_to_cancel="AddPayment:waiting_for_comment")
-async def get_payment_sum(msg: types.Message, state: FSMContext):
+async def get_payment_amount(msg: types.Message, state: FSMContext):
     """
-    Recognize payment sum, save to storage. Render interface for comment input
+    Recognize payment amount, save to storage. Render interface for comment input
 
     :param msg: Message
     :param state: redis storage
@@ -148,18 +147,18 @@ async def get_payment_sum(msg: types.Message, state: FSMContext):
     pattern = r"\d+(\,\d*)?$"
 
     if re.match(pattern, msg.text.replace(".", ",")) and float(msg.text) != 0:
-        payment_sum = round(float(msg.text.replace(",", ".")), ndigits=2)
-        await state.update_data(payment_sum=payment_sum)
+        payment_amount = round(float(msg.text.replace(",", ".")), ndigits=2)
+        await state.update_data(payment_amount=payment_amount)
         await AddPayment.waiting_for_comment.set()
         message = "Enter comment"
         await msg.answer(text=message)
     else:
-        message = "Payment sum is not valid. Repeat"
+        message = "Payment amount is not valid. Repeat"
         await msg.answer(message)
 
 
 @timeout(state_to_cancel="AddPayment:waiting_for_confirm")
-async def comment_and_finish(msg: Union[types.Message, types.CallbackQuery], state: FSMContext):
+async def comment_and_finish(msg: types.Message | types.CallbackQuery, state: FSMContext):
     """
     Add comment to payment and save payment to storage. Render interface for confirmation
 
@@ -179,7 +178,7 @@ async def comment_and_finish(msg: Union[types.Message, types.CallbackQuery], sta
     payment = {
         "id": str(uuid.uuid4()),
         "payer": user_state_data["payer"],
-        "sum": user_state_data["payment_sum"],
+        "amount": user_state_data["payment_amount"],
         "debtors": user_state_data["debtors"],
         "comment": payment_comment,
         "date": datetime.datetime.now().strftime("%d.%m.%Y - %H:%M")
@@ -247,7 +246,7 @@ async def all_debts_payed_callback(msg: types.CallbackQuery, state: FSMContext):
     for transfer in user_state_data["transfers"]:
         payment = {
             "payer": transfer["from"],
-            "sum": transfer["payment"],
+            "amount": transfer["payment"],
             "debtors": [transfer["to"]],
             "comment": "Debt payback",
             "date": datetime.datetime.now().strftime("%d.%m.%Y - %H:%M")
@@ -267,7 +266,7 @@ def register_payment_handlers(dp: Dispatcher):
     dp.register_message_handler(end_counting, chat_type=types.ChatType.GROUP, commands="end")
 
     # Text messages handlers
-    dp.register_message_handler(get_payment_sum, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_sum)
+    dp.register_message_handler(get_payment_amount, chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_sum)
     dp.register_message_handler(comment_and_finish, chat_type=types.ChatType.GROUP,
                                 state=AddPayment.waiting_for_comment)
 
@@ -292,7 +291,7 @@ def register_payment_handlers(dp: Dispatcher):
         get_debtors_callback, all_cb.filter(), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
     )
 
-    # Finish debtors choose, go to payment sum input
+    # Finish debtors choose, go to payment amount input
     dp.register_callback_query_handler(
         done_select_callback, Text("done_debtors"), chat_type=types.ChatType.GROUP, state=AddPayment.waiting_for_debtors
     )

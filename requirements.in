@@ -1,0 +1,5 @@
+aiogram~=2.21
+redis~=4.3
+SQLAlchemy~=1.4
+sqlalchemy-json~=0.5
+psycopg2-binary~=2.8

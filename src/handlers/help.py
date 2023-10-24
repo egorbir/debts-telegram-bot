@@ -1,5 +1,3 @@
-from typing import Union
-
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
@@ -7,7 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from src.constants import EMOJIS
 
 
-async def first_help_message(msg: Union[types.Message, types.CallbackQuery]):
+async def first_help_message(msg: types.Message | types.CallbackQuery):
     """
     Start bot help dialog
     """

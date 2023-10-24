@@ -1,5 +1,4 @@
 import contextlib
-from typing import Optional
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -93,7 +92,7 @@ class DBInterface:
                     break
             session.commit()
 
-    def get_all_chat_group_payments(self, chat_id: str, group_name: str) -> Optional[dict]:
+    def get_all_chat_group_payments(self, chat_id: str, group_name: str) -> dict | None:
         """
         Get payments for chat id and group name
         :param chat_id: telegram chat id where bot is working

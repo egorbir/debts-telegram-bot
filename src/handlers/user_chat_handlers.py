@@ -1,6 +1,7 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 
+from src.credentials import ADMIN_CHAT_ID
 from src.utils.decorators import timeout
 from src.utils.state_groups import Feedback
 
@@ -27,7 +28,7 @@ async def get_user_feedback(msg: types.Message, state: FSMContext):
     user_feedback = msg.text
     feedback_message = f"User: {user_full_name}, ID: @{username} wrote: \n{user_feedback}"
     await msg.answer("Thank you for leaving feedback!")
-    await msg.bot.send_message(chat_id=68270902, text=feedback_message)  # TODO admin ID from constants
+    await msg.bot.send_message(chat_id=ADMIN_CHAT_ID, text=feedback_message)
     await state.finish()
 
 

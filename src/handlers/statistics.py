@@ -8,21 +8,22 @@ async def get_users_payments_stats(msg: types.Message):
     Print statistics of users payments amounts
     """
 
-    group_name = RDS.get_chat_debts_group_name(chat_id=msg.chat.id)
-    payments = DB.get_all_chat_group_payments(chat_id=msg.chat.id, group_name=group_name)["payments"]
+    chat_id = str(msg.chat.id)
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
     stats = dict()
     for payment in payments:
         if payment["payer"] not in stats:
             stats[payment["payer"]] = {
-                "sum": payment["sum"],
+                "amount": payment["amount"],
                 "count": 1
             }
         else:
-            stats[payment["payer"]["sum"]] += payment["sum"]
+            stats[payment["payer"]["amount"]] += payment["amount"]
             stats[payment["payer"]["count"]] += 1
     result_message = "Statistics of amounts: \n\n"
     for user, stat in stats.items():
-        result_message += f"{user} made {stat['count']} payments, spent - {stat['sum']}\n\n"
+        result_message += f"{user} made {stat['count']} payments, spent - {stat['amount']}\n\n"
     await msg.answer(text=result_message)
 
 
@@ -31,8 +32,9 @@ async def list_payments(msg: types.Message):
     Print payments history
     """
 
-    group_name = RDS.get_chat_debts_group_name(chat_id=msg.chat.id)
-    payments = DB.get_all_chat_group_payments(chat_id=msg.chat.id, group_name=group_name)["payments"]
+    chat_id = str(msg.chat.id)
+    group_name = RDS.get_chat_debts_group_name(chat_id=chat_id)
+    payments = DB.get_all_chat_group_payments(chat_id=chat_id, group_name=group_name)["payments"]
     if len(payments) == 0:
         message = "No payments yet"
         await msg.answer(message)
@@ -40,7 +42,7 @@ async def list_payments(msg: types.Message):
         reply_msg_template = "History of payments:\n"
         for payment in payments:
             reply_msg_template += f"\nPayment:\n\n{payment['payer']} payed for {', '.join(payment['debtors'])}\n" \
-                                  f"Amount: {payment['sum']}\nDate: {payment['date']}" \
+                                  f"Amount: {payment['amount']}\nDate: {payment['date']}" \
                                   f"\nComment: {payment['comment']}" \
                                   f"\n_________________________________\n"
         await msg.answer(reply_msg_template)
