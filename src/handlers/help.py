@@ -14,7 +14,7 @@ async def first_help_message(msg: types.Message | types.CallbackQuery):
               'It allows you not to count every time who owes whom and how much, and also eliminates the need to ' \
               'transfer money every time after each expenditure.\n\n' \
               'It is easy to use - add to the chat, register and start adding payments. At the end, the bot itself ' \
-              'will calculate and display who should transfer to whom and how much to pay off debts.' \
+              'will calculate and display who should transfer to whom and how much to pay off debts. ' \
               'It will take into account situations with “complex” debt (for example John -> Bob -> Andrew) ' \
               'and will reduce the amount of money transferred, bypassing people in the middle'
     buttons = [
@@ -34,13 +34,13 @@ async def second_help_message(call: types.CallbackQuery):
 
     message = "Describing how the bot works, the following terms will be used:\n\n" \
               "\u2022 <b>Chat</b> - group chat in which the bot was added as the administrator\n" \
-              "\u2022 <b>Group of payments (or just group)</b> - a separate group of expenses '\
-              '(for example trip to the mountains, barbecue ets.)\n" \
+              "\u2022 <b>Group of payments (or just group)</b> - a separate group of expenses " \
+              "(for example trip to the mountains, barbecue ets.)\n" \
               "\u2022 <b>Balance</b> - total user spending balance\n" \
               "\u2022 <b>Positive</b> - the user is owed money, <b>negative</b> - user owes money\n" \
               "\u2022 <b>Payment</b> - one common expense within the group, divided among several people. " \
               "Each payment changes the balance of its participants\n" \
-              "\u2022 <b>Registration</b>  - adding a user to a group\n"
+              "\u2022 <b>Registration</b> - adding a user to a group\n"
     buttons = [
         InlineKeyboardButton(EMOJIS["backward"], callback_data="first_help"),
         InlineKeyboardButton(EMOJIS["forward"], callback_data="third_help")

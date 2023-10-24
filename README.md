@@ -1,28 +1,29 @@
-# Бот для подчета коллективных долгов 
-## 1. Описание
-### 1.1 Общая информация
+# Bot for calculating debts in group of people
+## 1. Description
+### 1.1 General information
 
-Данный бот предназначен для упрощения расчетов при совместных тратах в поездках, на мероприятиях и т.д. позволяет
-не считать каждый раз, кто, кому и сколько должен, а также избавляет от необходимости переводить деньги каждый раз после
-каждой траты.
+This bot is designed to simplify calculations when spending together on trips, events, etc. 
+It allows you not to count every time who owes whom and how much, and also eliminates the need to 
+transfer money every time after each expenditure.
 
-Использовать просто - добавить в чат, зарегистрироваться и начать добавлять платежи. В конце бот сам подсчитатет и 
-выведет, кто, кому и сколько дожен перевести, чтобы погасить долги. Он учтет ситуации с "круговым" долгом 
-(напр. Иван -> Петр -> Андрей) и сократит кол-во переводимых денег по максимуму минуя промежуточных людей.
+It is easy to use - add to the chat, register and start adding payments. At the end, the bot itself
+will calculate and display who should transfer to whom and how much to pay off debts. 
+It will take into account situations with “complex” debt (for example John -> Bob -> Andrew) 
+and will reduce the amount of money transferred, bypassing people in the middle.
 
-### 1.2 Термины
-В контексте описания работы бота будут использоваться термины:
+### 1.2 Terms
+Describing how the bot works, the following terms will be used:
 
-- Чат - групповой чат, в который бот добавлен администраторм
-- Группа - отдельная по смыслу группа трат (напр. поездка в горы, шашлыки, дача и т.д)
-- Баланс - общий баланс трат пользователя. Положительный - пользователю должны денег, отрицательный - пользователь должен денег
-- Платеж - одна общая трата в рамках группы, разделенная на несколько человек. Каждый платеж изменяет баланс его участников
-- Регистрация  - доавления юзера в базу бота
+- Chat - group chat in which the bot was added as the administrator.
+- Group of payments (or just group) - a separate group of expenses (for example trip to the mountains, barbecue ets.).
+- Balance - total user spending balance. Positive - the user is owed money, negative - user owes money.
+- Payment - one common expense within the group, divided among several people. Each payment changes the balance of its participants.
+- Registration  - adding a user to a group.
 
-### 1.3 Алгоритм
-Бот будет стремиться преобразовать балансы пользователей в конечные долги таким образом чтобы:
+### 1.3 Algorithm
+The bot will try to convert user balances into final debts in such a way that:
 
-1. Сократить кол-во переводов денег между пользователями (если А должен Б, Б должен В, то А может перевести сразу В)
-2. Уменьшить переводимые суммы денег
+1. Reduce the number of money transfers between users (if John owes Bob, and Bob owes Andrew, then John can transfer to Andrew directly).
+2. Reduce the amount of money transferred.
 
-Конечным результатом будет то, что каждый пользователь либо получает, либо переводит деньги в рамках погашения долгов
+The end result will be that each user either receives or transfers money as part of paying off debts.
